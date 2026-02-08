@@ -1,30 +1,38 @@
-const overlay = document.createElement("div");
-overlay.classList.add("overlay");
+function createChild(textContent, xStart, yStart, boxHeight) {
+  const LETTER_SPACING_K = 0.18;
+  const childText = document.createElement("span");
+  childText.textContent = textContent;
+  childText.style.top = `${yStart}px`;
+  childText.style.left = `${xStart}px`;
+  childText.style.fontSize = `${boxHeight * 0.8}px`;
+  childText.style.letterSpacing = `${48 * LETTER_SPACING_K}px`;
+  const overlay = document.getElementById("subtitle-overlay-chinese-ocr");
+  overlay.append(childText);
+}
 
-const LETTER_SPACING_K = 0.18;
+function createOverlay() {
+  const overlay = document.createElement("div");
+  overlay.id = "subtitle-overlay-chinese-ocr";
+  overlay.classList.add("overlay");
+  document.body.append(overlay);
+}
 
-const childText = document.createElement("span");
-childText.textContent = "知道我的目标是什么吗";
-childText.style.top = "806px";
-childText.style.left = "474px";
-childText.style.fontSize = "48px";
-childText.style.letterSpacing = `${48 * LETTER_SPACING_K}px`;
-
-let alive = true;
-window.addEventListener("pagehide", () => {
-  alive = false;
-});
-window.addEventListener("beforeunload", () => {
-  alive = false;
-});
-
-overlay.append(childText);
+function removeOverlay(overlay) {
+  document.body.removeChild(overlay);
+}
 
 document.addEventListener("keydown", (e) => {
   if (e.ctrlKey && e.key.toLowerCase() === "b") {
     console.log("button press detected");
     e.preventDefault();
     screenshot();
+  }
+  if (e.ctrlKey && e.key.toLowerCase() === "l") {
+    const overlay = document.getElementById("subtitle-overlay-chinese-ocr");
+    if (overlay) {
+      e.preventDefault();
+      removeOverlay(overlay);
+    }
   }
 });
 
@@ -37,8 +45,6 @@ function getViewportCssSize() {
 }
 
 function screenshot() {
-  if (!alive) return;
-
   console.log("screenshot initiated");
 
   const { cssW, cssH } = getViewportCssSize();
@@ -49,6 +55,7 @@ function screenshot() {
     }
     console.log("Downloaded, id:", res.downloadId);
   });
-}
 
-document.body.append(overlay);
+  createOverlay();
+  createChild("知道我的目标是什么吗", 474, 806, 60);
+}

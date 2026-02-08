@@ -11,5 +11,5 @@
 .overlay span {
   pointer-events: auto;
   color: #39ff14;
-  position: "absolute";
+  position: absolute;
 }
