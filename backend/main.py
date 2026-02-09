@@ -8,6 +8,7 @@ app = FastAPI()
 
 @app.post("/ocr/")
 async def receive_ocr(raw_img: UploadFile):
+    print("request received.")
     data = await raw_img.read()
     arr = np.frombuffer(data, dtype=np.uint8)
     img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
