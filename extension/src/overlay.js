@@ -44,6 +44,21 @@ function getViewportCssSize() {
   };
 }
 
+function drawOCROverlay(result) {
+  createOverlay();
+
+  texts = result.rec_texts;
+  bboxes = result.rec_polys;
+
+  //TO DO: Add orientation support
+  for (i = 0; i < texts.length; i++) {
+    const text = texts[i];
+    console.log(text);
+    const [[x1, y1], [x2, y2], [x3, y3], [x4, y4]] = bboxes[i];
+    createChild(text, x1, y1, y3 - y1);
+  }
+}
+
 function screenshot() {
   console.log("screenshot initiated");
 
@@ -53,9 +68,9 @@ function screenshot() {
       console.log(res?.error);
       return;
     }
-    console.log("Downloaded, id:", res.downloadId);
+    drawOCROverlay(res.result);
   });
 
-  createOverlay();
-  createChild("知道我的目标是什么吗", 474, 806, 60);
+  // createOverlay();
+  // createChild("知道我的目标是什么吗", 474, 806, 60);
 }

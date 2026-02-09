@@ -48,30 +48,30 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       const filename = `youtube-shot-${Date.now()}.png`;
 
       // downscale URL to CSS Viewport size
-      const { outDataUrl } = await downscaleDataUrlToViewport(
+      const { outBlob } = await downscaleDataUrlToViewport(
         dataUrl,
         msg.cssW,
         msg.cssH,
       );
 
-      // initiate download of the file (will be changed later)
-      chrome.downloads.download(
-        {
-          url: outDataUrl,
-          filename,
-          saveAs: false,
-        },
-        (downloadId) => {
-          if (chrome.runtime.lastError) {
-            sendResponse({
-              ok: false,
-              error: chrome.runtime.lastError.message,
-            });
-          } else {
-            sendResponse({ ok: true, downloadId });
-          }
-        },
-      );
+      // create form to send data over to backend and attach outBlob
+      const form = new FormData();
+      form.append("raw_img", outBlob, "frame.webp");
+
+      const res = await fetch("http://127.0.0.1:8000/ocr", {
+        method: "POST",
+        body: form,
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+      const result = await res.json();
+
+      console.log(result.result.res);
+
+      sendResponse({
+        ok: true,
+        result: result.result.res,
+      });
     })();
   } catch (err) {
     sendResponse({ ok: false, error: String(err) });
