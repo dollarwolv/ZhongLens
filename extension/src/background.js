@@ -17,15 +17,25 @@ async function downscaleDataUrlToViewport(dataUrl, targetW, targetH) {
   const canvas = new OffscreenCanvas(targetW, targetH);
   const ctx = canvas.getContext("2d", { willReadFrequently: false }); // willReadFrequently is a resource-saving measure.
 
-  // to be played around with - might improve OCR quality
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = "high";
-
   // draw image on the new canvas to downscale
   ctx.drawImage(bitmap, 0, 0, targetW, targetH);
 
+  // convert to grayscale for extra good compression
+  const imgData = ctx.getImageData(0, 0, targetW, targetH);
+  const data = imgData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+    data[i] = data[i + 1] = data[i + 2] = gray;
+  }
+  ctx.putImageData(imgData, 0, 0);
+
   // creates a blob from this downscaled image
-  const outBlob = await canvas.convertToBlob({ type: "image/jpeg" });
+  const outBlob = await canvas.convertToBlob({
+    type: "image/jpeg",
+    quality: 0.5,
+  });
+
+  console.log(outBlob.size / 1024); // KB
 
   // convert blob to URL
   const outDataUrl = await new Promise((resolve) => {
@@ -45,7 +55,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     (async () => {
       // capture tab and save image Data URL
       const dataUrl = await chrome.tabs.captureVisibleTab();
-      const filename = `youtube-shot-${Date.now()}.png`;
 
       // downscale URL to CSS Viewport size
       const { outBlob } = await downscaleDataUrlToViewport(
@@ -56,7 +65,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       // create form to send data over to backend and attach outBlob
       const form = new FormData();
-      form.append("raw_img", outBlob, "frame.webp");
+      form.append("raw_img", outBlob, "frame.jpeg");
 
       const res = await fetch("http://127.0.0.1:8000/ocr", {
         method: "POST",
