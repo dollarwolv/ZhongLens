@@ -7,21 +7,49 @@ async function dataUrlToBlob(dataUrl) {
   return await res.blob();
 }
 
-async function downscaleDataUrlToViewport(dataUrl, targetW, targetH) {
+async function downscaleDataUrlToViewport(
+  dataUrl,
+  targetW,
+  targetH,
+  downscaleFurther = true,
+  downscaleMaxDim = 800,
+) {
   // create blob that can then be converted to a bitmap, which is required for chrome
   // to be able to draw on a canvas
   const blob = await dataUrlToBlob(dataUrl);
   const bitmap = await createImageBitmap(blob);
 
+  let scalingFactor = 1;
+  let downscaledW = null;
+  let downscaledH = null;
+
+  if (downscaleFurther) {
+    const maxDimViewport = Math.max(targetW, targetH);
+
+    if (maxDimViewport >= downscaleMaxDim) {
+      scalingFactor = downscaleMaxDim / maxDimViewport;
+      downscaledW = targetW * scalingFactor;
+      downscaledH = targetH * scalingFactor;
+    }
+  }
+
   // create a canvas of smaller size and a context (which is what will be drawn on).
-  const canvas = new OffscreenCanvas(targetW, targetH);
+  const canvas = new OffscreenCanvas(
+    downscaledW ?? targetW,
+    downscaledH ?? targetH,
+  );
   const ctx = canvas.getContext("2d", { willReadFrequently: false }); // willReadFrequently is a resource-saving measure.
 
   // draw image on the new canvas to downscale
-  ctx.drawImage(bitmap, 0, 0, targetW, targetH);
+  ctx.drawImage(bitmap, 0, 0, downscaledW ?? targetW, downscaledH ?? targetH);
 
   // convert to grayscale for extra good compression
-  const imgData = ctx.getImageData(0, 0, targetW, targetH);
+  const imgData = ctx.getImageData(
+    0,
+    0,
+    downscaledW ?? targetW,
+    downscaledH ?? targetH,
+  );
   const data = imgData.data;
   for (let i = 0; i < data.length; i += 4) {
     const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
@@ -32,7 +60,7 @@ async function downscaleDataUrlToViewport(dataUrl, targetW, targetH) {
   // creates a blob from this downscaled image
   const outBlob = await canvas.convertToBlob({
     type: "image/jpeg",
-    quality: 0.5,
+    quality: 0.3,
   });
 
   console.log(outBlob.size / 1024); // KB
@@ -44,7 +72,7 @@ async function downscaleDataUrlToViewport(dataUrl, targetW, targetH) {
     r.readAsDataURL(outBlob);
   });
 
-  return { outBlob, outDataUrl };
+  return { outBlob, outDataUrl, scalingFactor };
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -57,7 +85,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       const dataUrl = await chrome.tabs.captureVisibleTab();
 
       // downscale URL to CSS Viewport size
-      const { outBlob } = await downscaleDataUrlToViewport(
+      const { outBlob, scalingFactor } = await downscaleDataUrlToViewport(
         dataUrl,
         msg.cssW,
         msg.cssH,
@@ -76,10 +104,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       const result = await res.json();
 
       console.log(result.result.res);
+      console.log("scaling factor: " + scalingFactor);
 
       sendResponse({
         ok: true,
         result: result.result.res,
+        scalingFactor,
       });
     })();
   } catch (err) {

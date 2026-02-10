@@ -1,15 +1,27 @@
-function createChild(textContent, xStart, yStart, boxHeight, boxWidth) {
+function createChild(
+  textContent,
+  xStart,
+  yStart,
+  boxHeight,
+  boxWidth,
+  scalingFactor,
+) {
   const LETTER_SPACING_K = 0.18;
   const childText = document.createElement("span");
   childText.textContent = textContent;
 
-  const fontSize = boxHeight * 0.8;
+  const fontSize = (boxHeight / scalingFactor) * 0.8;
+
+  console.log("box height: " + boxHeight);
+  console.log("scaling factor: " + scalingFactor);
+  console.log("font size: " + fontSize);
+
   const initialLetterSpacing = 0;
 
   let styles = {
     whiteSpace: "pre",
-    top: `${yStart}px`,
-    left: `${xStart}px`,
+    top: `${yStart / scalingFactor}px`,
+    left: `${xStart / scalingFactor}px`,
     fontSize: `${fontSize}px`,
     letterSpacing: `${initialLetterSpacing}px`,
   };
@@ -21,7 +33,7 @@ function createChild(textContent, xStart, yStart, boxHeight, boxWidth) {
   );
 
   let widthDiffAbs = Math.abs(boxWidth - computedWidth);
-  let widthDiff = boxWidth - computedWidth;
+  let widthDiff = boxWidth / scalingFactor - computedWidth;
   // let heightDiff = Math.abs(boxHeight - height)\
 
   const textLength = textContent.length;
@@ -93,7 +105,7 @@ function getViewportCssSize() {
   };
 }
 
-function drawOCROverlay(result) {
+function drawOCROverlay(result, scalingFactor) {
   createOverlay();
 
   texts = result.rec_texts;
@@ -104,7 +116,7 @@ function drawOCROverlay(result) {
     const text = texts[i];
     console.log(text);
     const [[x1, y1], [x2, y2], [x3, y3], [x4, y4]] = bboxes[i];
-    createChild(text, x1, y1, y3 - y1, x2 - x1);
+    createChild(text, x1, y1, y3 - y1, x2 - x1, scalingFactor);
   }
 }
 
@@ -112,12 +124,14 @@ function screenshot() {
   console.log("screenshot initiated");
 
   const { cssW, cssH } = getViewportCssSize();
+
   chrome.runtime.sendMessage({ type: "CAPTURE_TAB", cssW, cssH }, (res) => {
     if (!res?.ok) {
       console.log(res?.error);
       return;
     }
-    drawOCROverlay(res.result);
+    console.log("result angekommen: " + res);
+    drawOCROverlay(res.result, res.scalingFactor);
   });
 
   // createOverlay();
