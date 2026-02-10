@@ -1,4 +1,4 @@
-.overlay {
+.chinese-ocr-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -8,7 +8,7 @@
   pointer-events: none;
 }
 
-.overlay span {
+.chinese-ocr-overlay span {
   pointer-events: auto;
   color: #39ff14;
   position: absolute;

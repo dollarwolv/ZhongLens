@@ -6,16 +6,10 @@ function createChild(
   boxWidth,
   scalingFactor,
 ) {
-  const LETTER_SPACING_K = 0.18;
   const childText = document.createElement("span");
   childText.textContent = textContent;
 
   const fontSize = (boxHeight / scalingFactor) * 0.8;
-
-  console.log("box height: " + boxHeight);
-  console.log("scaling factor: " + scalingFactor);
-  console.log("font size: " + fontSize);
-
   const initialLetterSpacing = 0;
 
   let styles = {
@@ -27,44 +21,37 @@ function createChild(
   };
 
   Object.assign(childText.style, styles);
+
+  // measure width of box to find correct spacing
   let { width: computedWidth, height: computedHeight } = measureText(
     textContent,
     styles,
   );
 
-  let widthDiffAbs = Math.abs(boxWidth - computedWidth);
+  // calculate the difference between the measured box width (with 0px letter spacing) and the OCR box width
   let widthDiff = boxWidth / scalingFactor - computedWidth;
-  // let heightDiff = Math.abs(boxHeight - height)\
 
+  // calculate the spacing needed to reach the OCR box length
   const textLength = textContent.length;
   const nSpaces = textLength - 1;
-
   const newLetterSpacing = widthDiff / nSpaces;
-
-  styles.letterSpacing = `${newLetterSpacing}px`;
   childText.style.letterSpacing = `${newLetterSpacing}px`;
-
-  console.log("initial letter spacing: " + initialLetterSpacing);
-  console.log("applied letter spacing: " + childText.style.letterSpacing);
-  console.log("inital measured box width: " + computedWidth);
-  let { width: newWidth, height: newHeight } = measureText(textContent, styles);
-  console.log("new measured box width: " + newWidth);
-  console.log("OCR box width: " + boxWidth);
-  console.log(" ");
 
   const overlay = document.getElementById("subtitle-overlay-chinese-ocr");
   overlay.append(childText);
 }
 
 function measureText(text, styles = {}) {
+  // create a new hidden span with the same text content and styles
   const span = document.createElement("span");
   span.textContent = text;
   span.style.position = "absolute";
   span.style.visibility = "hidden";
   span.style.whiteSpace = "pre";
-
   Object.assign(span.style, styles);
   document.body.appendChild(span);
+
+  // measure height and width and remove from DOM
   const rect = span.getBoundingClientRect();
   document.body.removeChild(span);
 
@@ -72,28 +59,29 @@ function measureText(text, styles = {}) {
 }
 
 function createOverlay() {
-  const overlay = document.createElement("div");
-  overlay.id = "subtitle-overlay-chinese-ocr";
-  overlay.classList.add("overlay");
-  document.body.append(overlay);
+  const overlay = document.getElementById("subtitle-overlay-chinese-ocr");
+  if (overlay) return;
+  const newOverlay = document.createElement("div");
+  newOverlay.id = "subtitle-overlay-chinese-ocr";
+  newOverlay.classList.add("chinese-ocr-overlay");
+  document.body.append(newOverlay);
 }
 
-function removeOverlay(overlay) {
-  document.body.removeChild(overlay);
+function removeOverlay() {
+  const overlay = document.getElementById("subtitle-overlay-chinese-ocr");
+  if (overlay) {
+    document.body.removeChild(overlay);
+  }
 }
 
 document.addEventListener("keydown", (e) => {
   if (e.ctrlKey && e.key.toLowerCase() === "b") {
-    console.log("button press detected");
     e.preventDefault();
     screenshot();
   }
   if (e.ctrlKey && e.key.toLowerCase() === "l") {
-    const overlay = document.getElementById("subtitle-overlay-chinese-ocr");
-    if (overlay) {
-      e.preventDefault();
-      removeOverlay(overlay);
-    }
+    e.preventDefault();
+    removeOverlay();
   }
 });
 
@@ -111,7 +99,6 @@ function drawOCROverlay(result, scalingFactor) {
   texts = result.rec_texts;
   bboxes = result.rec_polys;
 
-  //TO DO: Add orientation support
   for (i = 0; i < texts.length; i++) {
     const text = texts[i];
     console.log(text);
@@ -133,7 +120,4 @@ function screenshot() {
     console.log("result angekommen: " + res);
     drawOCROverlay(res.result, res.scalingFactor);
   });
-
-  // createOverlay();
-  // createChild("知道我的目标是什么吗", 474, 806, 60);
 }
