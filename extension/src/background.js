@@ -60,7 +60,7 @@ async function downscaleDataUrlToViewport(
   // creates a blob from this downscaled image
   const outBlob = await canvas.convertToBlob({
     type: "image/jpeg",
-    quality: 0.3,
+    quality: 0.92,
   });
 
   console.log(outBlob.size / 1024); // KB

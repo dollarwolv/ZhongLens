@@ -64,6 +64,22 @@ function createOverlay() {
   const newOverlay = document.createElement("div");
   newOverlay.id = "subtitle-overlay-chinese-ocr";
   newOverlay.classList.add("chinese-ocr-overlay");
+
+  const closeButton = document.createElement("button");
+  closeButton.classList.add("chinese-ocr-close-button");
+  closeButton.innerHTML = `
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M18 6L6 18M6 6l12 12"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+      />
+    </svg>
+  `;
+  closeButton.addEventListener("click", removeOverlay);
+  newOverlay.append(closeButton);
   document.body.append(newOverlay);
 }
 
@@ -94,8 +110,6 @@ function getViewportCssSize() {
 }
 
 function drawOCROverlay(result, scalingFactor) {
-  createOverlay();
-
   texts = result.rec_texts;
   bboxes = result.rec_polys;
 
@@ -105,11 +119,13 @@ function drawOCROverlay(result, scalingFactor) {
     const [[x1, y1], [x2, y2], [x3, y3], [x4, y4]] = bboxes[i];
     createChild(text, x1, y1, y3 - y1, x2 - x1, scalingFactor);
   }
+
+  removeLoadingIcon();
 }
 
 function screenshot() {
-  console.log("screenshot initiated");
-
+  createOverlay();
+  drawLoadingIcon();
   const { cssW, cssH } = getViewportCssSize();
 
   chrome.runtime.sendMessage({ type: "CAPTURE_TAB", cssW, cssH }, (res) => {
@@ -117,7 +133,43 @@ function screenshot() {
       console.log(res?.error);
       return;
     }
-    console.log("result angekommen: " + res);
+
     drawOCROverlay(res.result, res.scalingFactor);
   });
+}
+
+function drawLoadingIcon() {
+  const overlay = document.getElementById("subtitle-overlay-chinese-ocr");
+
+  const spinnerDiv = document.createElement("div");
+  spinnerDiv.id = "overlay-chinese-ocr-spinner";
+
+  spinnerDiv.innerHTML = `
+    <svg
+      class="spinner"
+      width="40"
+      height="40"
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+    >
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-dasharray="14 10"
+      />
+    </svg>
+    <span>Analyzing...</span>`;
+
+  overlay.appendChild(spinnerDiv);
+}
+
+function removeLoadingIcon() {
+  const spinnerDiv = document.getElementById("overlay-chinese-ocr-spinner");
+
+  spinnerDiv?.remove();
 }
