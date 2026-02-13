@@ -15,7 +15,13 @@ export default defineContentScript({
         container.append(app);
 
         const root = ReactDOM.createRoot(app);
-        root.render(<Overlay />);
+        root.render(
+          <Overlay
+            onClose={() => {
+              ui.remove();
+            }}
+          />,
+        );
         return root;
       },
       onRemove: (root) => {
@@ -35,5 +41,6 @@ export default defineContentScript({
         ui.remove();
       }
     });
+    ctx.onInvalidated(() => document.removeEventListener("keydown", onKeyDown));
   },
 });

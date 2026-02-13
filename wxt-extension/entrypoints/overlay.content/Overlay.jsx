@@ -1,14 +1,100 @@
 import { useState, useEffect } from "react";
+import ChildText from "./ChildText";
 import "~/assets/tailwind.css";
 
-export default () => {
-  const [count, setCount] = useState(1);
-  const increment = () => setCount((count) => count + 1);
+export default ({ onClose }) => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [data, setData] = useState([]);
+  const [scalingFactor, setScalingFactor] = useState(1);
+
+  async function screenshot() {
+    setLoading(true);
+    const { cssW, cssH } = getViewportCssSize();
+    const res = await chrome.runtime.sendMessage({
+      type: "CAPTURE_TAB",
+      cssW,
+      cssH,
+    });
+    if (!res.ok) {
+      setError(res?.error);
+      setLoading(false);
+    }
+    const resultData = res?.result;
+    const data = resultData.rec_texts.map((text, index) => {
+      return [text, resultData.rec_polys[index]];
+    });
+
+    setData(data);
+    if (data.length === 0) {
+      setError("No text found. Please try again.");
+    }
+    setScalingFactor(res?.scalingFactor);
+    setLoading(false);
+  }
+
+  function getViewportCssSize() {
+    const vv = window.visualViewport;
+    return {
+      cssW: Math.round(vv?.width ?? window.innerWidth),
+      cssH: Math.round(vv?.height ?? window.innerHeight),
+    };
+  }
+
+  useEffect(() => {
+    screenshot();
+  }, []);
+
+  useEffect(() => {
+    console.log(data);
+  }, [data]);
 
   return (
-    <div>
-      <p className="text-5xl">This is React. {count}</p>
-      <button onClick={increment}>Increment</button>
+    <div className="fixed top-0 left-0 w-screen h-screen">
+      <button
+        className="top-12 right-12 rounded-full w-24 h-24 bg-neon-green flex justify-center items-center absolute cursor-pointer"
+        onClick={onClose}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+          <path
+            d="M18 6L6 18M6 6l12 12"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
+      {loading && (
+        <div className="absolute top-[50%] left-[50%] flex items-center justify-center flex-col text-neon-green -translate-x-1/2 -translate-y-1/2">
+          <div className="animate-spin">
+            <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true">
+              <circle
+                cx="12"
+                cy="12"
+                r="9"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-dasharray="14 10"
+              />
+            </svg>
+          </div>
+          <span>Analyzing...</span>`
+        </div>
+      )}
+      {error && (
+        <div className="absolute top-[50%] left-[50%] flex items-center justify-center flex-col text-green-400 -translate-x-1/2 -translate-y-1/2">
+          <span>{error}</span>
+        </div>
+      )}
+      {data.map((entry, index) => {
+        console.log(entry);
+        return (
+          <ChildText entry={entry} key={index} scalingFactor={scalingFactor} />
+        );
+      })}
     </div>
   );
 };
