@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import "~/assets/tailwind.css";
 
 export default () => {
   const [count, setCount] = useState(1);
@@ -6,7 +7,7 @@ export default () => {
 
   return (
     <div>
-      <p>This is React. {count}</p>
+      <p className="text-5xl">This is React. {count}</p>
       <button onClick={increment}>Increment</button>
     </div>
   );

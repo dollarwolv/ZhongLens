@@ -1,5 +1,6 @@
 import ReactDOM from "react-dom/client";
 import Overlay from "./Overlay";
+import "~/assets/tailwind.css";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
