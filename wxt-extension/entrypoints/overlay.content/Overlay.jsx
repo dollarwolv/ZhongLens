@@ -50,9 +50,9 @@ export default ({ onClose }) => {
   }, [data]);
 
   return (
-    <div className="fixed top-0 left-0 w-screen h-screen">
+    <div className="fixed top-0 left-0 h-screen w-screen">
       <button
-        className="top-12 right-12 rounded-full w-24 h-24 bg-neon-green flex justify-center items-center absolute cursor-pointer"
+        className="bg-neon-green absolute top-12 right-12 flex h-24 w-24 cursor-pointer items-center justify-center rounded-full"
         onClick={onClose}
       >
         <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
@@ -66,7 +66,7 @@ export default ({ onClose }) => {
         </svg>
       </button>
       {loading && (
-        <div className="absolute top-[50%] left-[50%] flex items-center justify-center flex-col text-neon-green -translate-x-1/2 -translate-y-1/2">
+        <div className="text-neon-green absolute top-[50%] left-[50%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center">
           <div className="animate-spin">
             <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true">
               <circle
@@ -85,7 +85,7 @@ export default ({ onClose }) => {
         </div>
       )}
       {error && (
-        <div className="absolute top-[50%] left-[50%] flex items-center justify-center flex-col text-green-400 -translate-x-1/2 -translate-y-1/2">
+        <div className="absolute top-[50%] left-[50%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center text-green-400">
           <span>{error}</span>
         </div>
       )}

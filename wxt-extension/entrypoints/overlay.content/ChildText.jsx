@@ -30,7 +30,7 @@ function ChildText({ entry, scalingFactor }) {
   return (
     <span
       ref={spanRef}
-      className="absolute whitespace-pre text-neon-green"
+      className="text-neon-green absolute whitespace-pre"
       style={{
         top: `${y1 / scalingFactor}px`,
         left: `${x1 / scalingFactor}px`,
