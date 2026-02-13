@@ -1,6 +1,6 @@
 {
-  "name": "wxt-react-starter",
-  "description": "manifest.json description",
+  "name": "zhonglens",
+  "description": "ZhongLens - a Chinese OCR extension that lets you use a popup dictionary on any content.",
   "private": true,
   "version": "0.0.0",
   "type": "module",
