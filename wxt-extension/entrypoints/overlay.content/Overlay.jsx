@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import ChildText from "./ChildText";
 import "~/assets/tailwind.css";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default ({ onClose }) => {
   const [loading, setLoading] = useState(false);
