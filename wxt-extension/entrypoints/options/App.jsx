@@ -111,7 +111,7 @@ function App() {
                 Maximum dimension that screenshot gets scaled down to before
                 being analyzed. Higher resolution = more accurate. Lower
                 resolution = faster processing. Recommended to keep between 640
-                (very low) and 1024 (quite high).
+                (very low) and 1200 (probably good enough).
               </FieldDescription>
               <Input
                 type="number"

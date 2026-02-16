@@ -7,7 +7,18 @@ export default defineConfig({
   modules: ["@wxt-dev/module-react"],
   manifest: {
     name: "ZhongLens",
-    permissions: ["tabs", "activeTab", "storage"],
+    permissions: ["tabs", "activeTab", "storage", "offscreen"],
+    web_accessible_resources: [
+      {
+        resources: [
+          "tesseract/worker.min.js",
+          "tesseract/core/*",
+          // if you bundle traineddata:
+          // "tesseract/lang/*",
+        ],
+        matches: ["<all_urls>"],
+      },
+    ],
   },
   vite: () => ({
     plugins: [tailwindcss()],

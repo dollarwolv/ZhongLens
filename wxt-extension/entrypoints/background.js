@@ -3,6 +3,39 @@ export default defineBackground(() => {
     console.log("Service worker installed");
   });
 
+  async function ensureOffscreen() {
+    console.log("making offscreen document");
+
+    if (chrome.runtime.getContexts) {
+      console.log("contexts exist");
+      const contexts = await chrome.runtime.getContexts({});
+      const exists = contexts.some(
+        (c) => c.contextType === "OFFSCREEN_DOCUMENT",
+      );
+
+      if (exists) {
+        console.log("offscreen document already exists");
+        return;
+      }
+    }
+
+    await chrome.offscreen.createDocument({
+      url: chrome.runtime.getURL("/tesseract.html"),
+      reasons: ["WORKERS"],
+      justification: "Run Tesseract.js locally (needs Worker + WASM).",
+    });
+
+    console.log("offscreen doc created i think");
+
+    const contexts = await chrome.runtime.getContexts({});
+    const exists = contexts.some((c) => c.contextType === "OFFSCREEN_DOCUMENT");
+
+    if (exists) {
+      console.log("offscreen document exists after creating it");
+      return;
+    }
+  }
+
   async function dataUrlToBlob(dataUrl) {
     const res = await fetch(dataUrl);
     return await res.blob();
@@ -86,32 +119,49 @@ export default defineBackground(() => {
         const dataUrl = await chrome.tabs.captureVisibleTab();
 
         // downscale URL to CSS Viewport size
-        const { outBlob, scalingFactor } = await downscaleDataUrlToViewport(
-          dataUrl,
-          msg.cssW,
-          msg.cssH,
-        );
+        const { outBlob, outDataUrl, scalingFactor } =
+          await downscaleDataUrlToViewport(dataUrl, msg.cssW, msg.cssH);
 
-        // create form to send data over to backend and attach outBlob
-        const form = new FormData();
-        form.append("raw_img", outBlob, "frame.jpeg");
-
-        const res = await fetch("http://127.0.0.1:8000/ocr", {
-          method: "POST",
-          body: form,
+        const serverProcessingEnabled = await new Promise((resolve) => {
+          chrome.storage.sync.get("serverProcessingEnabled", (items) =>
+            resolve(!!items.serverProcessingEnabled),
+          );
         });
 
-        if (!res.ok) throw new Error(await res.text());
-        const result = await res.json();
+        if (serverProcessingEnabled) {
+          // create form to send data over to backend and attach outBlob
+          const form = new FormData();
+          form.append("raw_img", outBlob, "frame.jpeg");
 
-        console.log(result.result.res);
-        console.log("scaling factor: " + scalingFactor);
+          const res = await fetch("http://127.0.0.1:8000/ocr", {
+            method: "POST",
+            body: form,
+          });
 
-        sendResponse({
-          ok: true,
-          result: result.result.res,
-          scalingFactor,
-        });
+          if (!res.ok) throw new Error(await res.text());
+          const result = await res.json();
+
+          console.log(result.result.res);
+          console.log("scaling factor: " + scalingFactor);
+
+          sendResponse({
+            ok: true,
+            result: result.result.res,
+            scalingFactor,
+          });
+        } else {
+          console.log("starting local OCR");
+          await ensureOffscreen();
+
+          const ocrRes = await new Promise((resolve) => {
+            chrome.runtime.sendMessage(
+              { type: "OCR_LOCAL", imageDataUrl: outDataUrl },
+              resolve,
+            );
+          });
+
+          if (!ocrRes?.ok) throw new Error(ocrRes?.error || "Local OCR failed");
+        }
       })();
     } catch (err) {
       sendResponse({ ok: false, error: String(err) });
