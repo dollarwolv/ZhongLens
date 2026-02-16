@@ -24,14 +24,42 @@ export default defineBackground(() => {
     return await res.blob();
   }
 
+  function cropFromCanvas(sourceCanvas, startX, startY, endX, endY) {
+    const [width, height] = [endX - startX, endY - startY];
+
+    const croppedCanvas = new OffscreenCanvas(width, height);
+    const ctx = croppedCanvas.getContext("2d");
+
+    ctx.drawImage(
+      sourceCanvas,
+      startX,
+      startY,
+      width,
+      height,
+      0,
+      0,
+      width,
+      height,
+    );
+
+    return croppedCanvas;
+  }
+
   async function downscaleDataUrlToViewport(
     dataUrl,
     targetW,
     targetH,
-    imgFormat = "jpeg",
-    downscaleFurther = true,
-    convertToGrayscale = true,
-    downscaleMaxDim = 800,
+    {
+      imgFormat = "jpeg",
+      downscaleFurther = false,
+      convertToGrayscale = true,
+      downscaleMaxDim = 800,
+      crop = true,
+      startX = 400,
+      startY = 400,
+      endX = targetW,
+      endY = targetH,
+    } = {},
   ) {
     // create blob that can then be converted to a bitmap, which is required for chrome
     // to be able to draw on a canvas
@@ -39,8 +67,7 @@ export default defineBackground(() => {
     const bitmap = await createImageBitmap(blob);
 
     let scalingFactor = 1;
-    let downscaledW = null;
-    let downscaledH = null;
+    let [downscaledW, downscaledH] = [null, null];
 
     if (downscaleFurther) {
       const maxDimViewport = Math.max(targetW, targetH);
@@ -53,7 +80,7 @@ export default defineBackground(() => {
     }
 
     // create a canvas of smaller size and a context (which is what will be drawn on).
-    const canvas = new OffscreenCanvas(
+    let canvas = new OffscreenCanvas(
       downscaledW ?? targetW,
       downscaledH ?? targetH,
     );
@@ -77,6 +104,10 @@ export default defineBackground(() => {
         data[i] = data[i + 1] = data[i + 2] = gray;
       }
       ctx.putImageData(imgData, 0, 0);
+    }
+
+    if (crop) {
+      canvas = cropFromCanvas(canvas, startX, startY, endX, endY);
     }
 
     // creates a blob from this downscaled image
@@ -112,10 +143,16 @@ export default defineBackground(() => {
           );
         });
 
+        const startX = 200;
+        const startY = 200;
+
         if (serverProcessingEnabled) {
           // downscale URL to CSS Viewport size
           const { outBlob, outDataUrl, scalingFactor } =
-            await downscaleDataUrlToViewport(dataUrl, msg.cssW, msg.cssH);
+            await downscaleDataUrlToViewport(dataUrl, msg.cssW, msg.cssH, {
+              startX,
+              startY,
+            });
 
           // create form to send data over to backend and attach outBlob
           const form = new FormData();
@@ -137,6 +174,8 @@ export default defineBackground(() => {
             mode: "server_ocr",
             result: result.result.res,
             scalingFactor,
+            startX,
+            startY,
           });
 
           // if server processing is DISABLED (local processing):
@@ -144,14 +183,14 @@ export default defineBackground(() => {
           await ensureOffscreen();
 
           const { outBlob, outDataUrl, scalingFactor } =
-            await downscaleDataUrlToViewport(
-              dataUrl,
-              msg.cssW,
-              msg.cssH,
-              "png",
-              false,
-              false,
-            );
+            await downscaleDataUrlToViewport(dataUrl, msg.cssW, msg.cssH, {
+              imgFormat: "png",
+              downscaleFurther: false,
+              convertToGrayscale: false,
+              crop: true,
+              startX,
+              startY,
+            });
 
           const res = await new Promise((resolve) => {
             chrome.runtime.sendMessage(
@@ -168,6 +207,8 @@ export default defineBackground(() => {
             mode: "local_ocr",
             result,
             scalingFactor,
+            startX,
+            startY,
           });
         }
       })();

@@ -2,9 +2,14 @@ import { useLayoutEffect } from "react";
 import { useState, useRef } from "react";
 import "~/assets/tailwind.css";
 
-function ChildText({ entry, scalingFactor }) {
+function ChildText({ entry, scalingFactor, startX, startY }) {
   const text = entry[0];
-  const [[x1, y1], [x2, y2], [x3, y3], [x4, y4]] = entry[1];
+
+  const [[x1, y1], [x2, y2], [x3, y3], [x4, y4]] = entry[1].map(([x, y]) => [
+    x + startX,
+    y + startY,
+  ]);
+
   const boxHeight = y3 - y1;
   const boxWidth = x2 - x1;
   const fontSize = (boxHeight / scalingFactor) * 0.8;

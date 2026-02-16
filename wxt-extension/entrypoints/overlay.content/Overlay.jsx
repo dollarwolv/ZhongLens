@@ -8,6 +8,8 @@ export default ({ onClose }) => {
   const [error, setError] = useState("");
   const [data, setData] = useState([]);
   const [scalingFactor, setScalingFactor] = useState(1);
+  const [startX, setStartX] = useState(0);
+  const [startY, setStartY] = useState(0);
 
   async function screenshot() {
     setLoading(true);
@@ -50,6 +52,8 @@ export default ({ onClose }) => {
     if (data.length === 0) {
       setError("No text found. Please try again.");
     }
+    setStartX(res?.startX);
+    setStartY(res?.startY);
     setScalingFactor(res?.scalingFactor);
     setLoading(false);
   }
@@ -69,6 +73,8 @@ export default ({ onClose }) => {
   useEffect(() => {
     console.log(data);
     console.log("data logged in useeffect");
+    console.log("startX: " + startX);
+    console.log("startY: " + startY);
   }, [data]);
 
   return (
@@ -113,7 +119,13 @@ export default ({ onClose }) => {
       )}
       {data.map((entry, index) => {
         return (
-          <ChildText entry={entry} key={index} scalingFactor={scalingFactor} />
+          <ChildText
+            entry={entry}
+            key={index}
+            scalingFactor={scalingFactor}
+            startX={startX}
+            startY={startY}
+          />
         );
       })}
     </div>

@@ -20,6 +20,10 @@ print("ocr model made.")
 def recognize(img):
     print("starting recognition")
     result = ocr.predict(img)
+
+    for res in result:
+        res.save_to_img("output")
+
     first_img = result[0]
     result_json = dict(first_img.json)
 
