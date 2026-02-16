@@ -4,19 +4,12 @@ export default defineBackground(() => {
   });
 
   async function ensureOffscreen() {
-    console.log("making offscreen document");
-
     if (chrome.runtime.getContexts) {
-      console.log("contexts exist");
       const contexts = await chrome.runtime.getContexts({});
       const exists = contexts.some(
         (c) => c.contextType === "OFFSCREEN_DOCUMENT",
       );
-
-      if (exists) {
-        console.log("offscreen document already exists");
-        return;
-      }
+      if (exists) return;
     }
 
     await chrome.offscreen.createDocument({
@@ -24,16 +17,6 @@ export default defineBackground(() => {
       reasons: ["WORKERS"],
       justification: "Run Tesseract.js locally (needs Worker + WASM).",
     });
-
-    console.log("offscreen doc created i think");
-
-    const contexts = await chrome.runtime.getContexts({});
-    const exists = contexts.some((c) => c.contextType === "OFFSCREEN_DOCUMENT");
-
-    if (exists) {
-      console.log("offscreen document exists after creating it");
-      return;
-    }
   }
 
   async function dataUrlToBlob(dataUrl) {
