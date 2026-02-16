@@ -146,6 +146,7 @@ export default defineBackground(() => {
 
           sendResponse({
             ok: true,
+            mode: "server_ocr",
             result: result.result.res,
             scalingFactor,
           });
@@ -153,14 +154,22 @@ export default defineBackground(() => {
           console.log("starting local OCR");
           await ensureOffscreen();
 
-          const ocrRes = await new Promise((resolve) => {
+          const res = await new Promise((resolve) => {
             chrome.runtime.sendMessage(
               { type: "OCR_LOCAL", imageDataUrl: outDataUrl },
               resolve,
             );
           });
 
-          if (!ocrRes?.ok) throw new Error(ocrRes?.error || "Local OCR failed");
+          if (!res?.ok) throw new Error(res?.error || "Local OCR failed");
+          const result = res.result.blocks[0].paragraphs[0].lines;
+
+          sendResponse({
+            ok: true,
+            mode: "local_ocr",
+            result,
+            scalingFactor,
+          });
         }
       })();
     } catch (err) {

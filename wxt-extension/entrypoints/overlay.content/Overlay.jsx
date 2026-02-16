@@ -22,9 +22,29 @@ export default ({ onClose }) => {
       setLoading(false);
     }
     const resultData = res?.result;
-    const data = resultData.rec_texts.map((text, index) => {
-      return [text, resultData.rec_polys[index]];
-    });
+    const mode = res?.mode;
+
+    let data = [];
+
+    if (mode === "server_ocr") {
+      data = resultData.rec_texts.map((text, index) => {
+        return [text, resultData.rec_polys[index]];
+      });
+    } else if (mode === "local_ocr") {
+      console.log(resultData);
+      data = resultData
+        .filter((item) => item.confidence > 0.9)
+        .map((item, index) => {
+          const bbox = item.bbox;
+          const fullBoundingBox = [
+            [bbox.x0, bbox.y0],
+            [bbox.x1, bbox.y0],
+            [bbox.x1, bbox.y1],
+            [bbox.x0, bbox.y1],
+          ];
+          return [item.text, fullBoundingBox];
+        });
+    }
 
     setData(data);
     if (data.length === 0) {
@@ -48,6 +68,7 @@ export default ({ onClose }) => {
 
   useEffect(() => {
     console.log(data);
+    console.log("data logged in useeffect");
   }, [data]);
 
   return (
@@ -91,7 +112,6 @@ export default ({ onClose }) => {
         </div>
       )}
       {data.map((entry, index) => {
-        console.log(entry);
         return (
           <ChildText entry={entry} key={index} scalingFactor={scalingFactor} />
         );

@@ -41,7 +41,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         { text: true, blocks: true },
       );
       console.log(res.data);
-      sendResponse({ ok: true, data: res.data });
+      sendResponse({ ok: true, result: res.data });
     } catch (error) {
       sendResponse({ ok: false, error: String(error) });
     }
