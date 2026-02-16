@@ -45,7 +45,9 @@ export default defineBackground(() => {
     dataUrl,
     targetW,
     targetH,
+    imgFormat = "jpeg",
     downscaleFurther = true,
+    convertToGrayscale = true,
     downscaleMaxDim = 800,
   ) {
     // create blob that can then be converted to a bitmap, which is required for chrome
@@ -77,23 +79,26 @@ export default defineBackground(() => {
     // draw image on the new canvas to downscale
     ctx.drawImage(bitmap, 0, 0, downscaledW ?? targetW, downscaledH ?? targetH);
 
-    // convert to grayscale for extra good compression
-    const imgData = ctx.getImageData(
-      0,
-      0,
-      downscaledW ?? targetW,
-      downscaledH ?? targetH,
-    );
-    const data = imgData.data;
-    for (let i = 0; i < data.length; i += 4) {
-      const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-      data[i] = data[i + 1] = data[i + 2] = gray;
+    if (convertToGrayscale) {
+      // convert to grayscale for extra good compression
+      const imgData = ctx.getImageData(
+        0,
+        0,
+        downscaledW ?? targetW,
+        downscaledH ?? targetH,
+      );
+      const data = imgData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const gray =
+          0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        data[i] = data[i + 1] = data[i + 2] = gray;
+      }
+      ctx.putImageData(imgData, 0, 0);
     }
-    ctx.putImageData(imgData, 0, 0);
 
     // creates a blob from this downscaled image
     const outBlob = await canvas.convertToBlob({
-      type: "image/jpeg",
+      type: `image/${imgFormat}`,
       quality: 0.92,
     });
 
@@ -118,10 +123,6 @@ export default defineBackground(() => {
         // capture tab and save image Data URL
         const dataUrl = await chrome.tabs.captureVisibleTab();
 
-        // downscale URL to CSS Viewport size
-        const { outBlob, outDataUrl, scalingFactor } =
-          await downscaleDataUrlToViewport(dataUrl, msg.cssW, msg.cssH);
-
         const serverProcessingEnabled = await new Promise((resolve) => {
           chrome.storage.sync.get("serverProcessingEnabled", (items) =>
             resolve(!!items.serverProcessingEnabled),
@@ -129,6 +130,10 @@ export default defineBackground(() => {
         });
 
         if (serverProcessingEnabled) {
+          // downscale URL to CSS Viewport size
+          const { outBlob, outDataUrl, scalingFactor } =
+            await downscaleDataUrlToViewport(dataUrl, msg.cssW, msg.cssH);
+
           // create form to send data over to backend and attach outBlob
           const form = new FormData();
           form.append("raw_img", outBlob, "frame.jpeg");
@@ -150,9 +155,20 @@ export default defineBackground(() => {
             result: result.result.res,
             scalingFactor,
           });
+
+          // if server processing is DISABLED (local processing):
         } else {
-          console.log("starting local OCR");
           await ensureOffscreen();
+
+          const { outBlob, outDataUrl, scalingFactor } =
+            await downscaleDataUrlToViewport(
+              dataUrl,
+              msg.cssW,
+              msg.cssH,
+              "png",
+              false,
+              false,
+            );
 
           const res = await new Promise((resolve) => {
             chrome.runtime.sendMessage(
