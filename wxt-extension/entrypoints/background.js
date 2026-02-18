@@ -138,8 +138,9 @@ export default defineBackground(() => {
     if (msg.type !== "CAPTURE_TAB") {
       return;
     }
-    try {
-      (async () => {
+
+    (async () => {
+      try {
         // capture tab and save image Data URL
         const dataUrl = await chrome.tabs.captureVisibleTab();
 
@@ -206,6 +207,9 @@ export default defineBackground(() => {
           });
 
           if (!res?.ok) throw new Error(res?.error || "Local OCR failed");
+          if (res.result.blocks.length === 0)
+            throw new Error("No text found in the image. Please try again.");
+
           const result = res.result.blocks[0].paragraphs[0].lines;
 
           sendResponse({
@@ -217,10 +221,10 @@ export default defineBackground(() => {
             startY,
           });
         }
-      })();
-    } catch (err) {
-      sendResponse({ ok: false, error: String(err) });
-    }
+      } catch (err) {
+        sendResponse({ ok: false, error: String(err) });
+      }
+    })();
 
     return true;
   });
