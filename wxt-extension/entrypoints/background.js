@@ -135,13 +135,10 @@ export default defineBackground(() => {
   }
 
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.type !== "CAPTURE_TAB") {
-      return;
-    }
+    if (msg.type !== "CAPTURE_TAB") return;
 
     (async () => {
       try {
-        // capture tab and save image Data URL
         const dataUrl = await chrome.tabs.captureVisibleTab();
 
         const {
