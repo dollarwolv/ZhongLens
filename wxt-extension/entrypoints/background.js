@@ -144,21 +144,29 @@ export default defineBackground(() => {
         // capture tab and save image Data URL
         const dataUrl = await chrome.tabs.captureVisibleTab();
 
-        const serverProcessingEnabled = await new Promise((resolve) => {
-          chrome.storage.sync.get("serverProcessingEnabled", (items) =>
-            resolve(!!items.serverProcessingEnabled),
-          );
-        });
-
-        const startX = 200;
-        const startY = 200;
+        const {
+          serverProcessingEnabled,
+          cropXStart,
+          cropYStart,
+          cropXEnd,
+          cropYEnd,
+        } = await chrome.storage.sync.get([
+          "serverProcessingEnabled",
+          "cropXStart",
+          "cropYStart",
+          "cropXEnd",
+          "cropYEnd",
+        ]);
 
         if (serverProcessingEnabled) {
           // downscale URL to CSS Viewport size
           const { outBlob, outDataUrl, scalingFactor } =
             await downscaleDataUrlToViewport(dataUrl, msg.cssW, msg.cssH, {
-              startX,
-              startY,
+              crop: true,
+              startX: cropXStart ?? 0,
+              startY: cropYStart ?? 0,
+              endX: cropXEnd ?? msg.cssW,
+              endY: cropYEnd ?? msg.cssH,
             });
 
           // create form to send data over to backend and attach outBlob
@@ -181,8 +189,8 @@ export default defineBackground(() => {
             mode: "server_ocr",
             result: result.result.res,
             scalingFactor,
-            startX,
-            startY,
+            startX: cropXStart,
+            startY: cropYStart,
           });
 
           // if server processing is DISABLED (local processing):
@@ -195,8 +203,10 @@ export default defineBackground(() => {
               downscaleFurther: false,
               convertToGrayscale: false,
               crop: true,
-              startX,
-              startY,
+              startX: cropXStart ?? 0,
+              startY: cropYStart ?? 0,
+              endX: cropXEnd ?? msg.cssW,
+              endY: cropYEnd ?? msg.cssH,
             });
 
           const res = await new Promise((resolve) => {
@@ -217,8 +227,8 @@ export default defineBackground(() => {
             mode: "local_ocr",
             result,
             scalingFactor,
-            startX,
-            startY,
+            startX: cropXStart,
+            startY: cropYStart,
           });
         }
       } catch (err) {
