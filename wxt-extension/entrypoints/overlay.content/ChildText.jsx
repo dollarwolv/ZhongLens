@@ -6,8 +6,8 @@ function ChildText({ entry, scalingFactor, startX, startY }) {
   const text = entry[0];
 
   const [[x1, y1], [x2, y2], [x3, y3], [x4, y4]] = entry[1].map(([x, y]) => [
-    x + startX,
-    y + startY,
+    x + startX * scalingFactor,
+    y + startY * scalingFactor,
   ]);
 
   const boxHeight = y3 - y1;

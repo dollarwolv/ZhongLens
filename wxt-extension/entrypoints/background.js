@@ -51,12 +51,12 @@ export default defineBackground(() => {
     targetH,
     {
       imgFormat = "jpeg",
-      downscaleFurther = false,
+      downscaleFurther = true,
       convertToGrayscale = true,
       downscaleMaxDim = 800,
       crop = true,
-      startX = 400,
-      startY = 400,
+      startX = 0,
+      startY = 0,
       endX = targetW,
       endY = targetH,
     } = {},
@@ -107,7 +107,13 @@ export default defineBackground(() => {
     }
 
     if (crop) {
-      canvas = cropFromCanvas(canvas, startX, startY, endX, endY);
+      canvas = cropFromCanvas(
+        canvas,
+        startX * scalingFactor,
+        startY * scalingFactor,
+        endX * scalingFactor,
+        endY * scalingFactor,
+      );
     }
 
     // creates a blob from this downscaled image
