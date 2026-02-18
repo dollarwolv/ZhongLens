@@ -8,6 +8,16 @@ function CropOverlay() {
   const [pos, setPos] = useState({ x: 200, y: 200 });
   const [hydrated, setHydrated] = useState(false);
 
+  function getViewportCssSize() {
+    const vv = window.visualViewport;
+    return {
+      cssW: Math.round(vv?.width ?? window.innerWidth),
+      cssH: Math.round(vv?.height ?? window.innerHeight),
+    };
+  }
+
+  const { cssW, cssH } = getViewportCssSize();
+
   const childRef = useRef();
 
   function onResize(e, { node, size, handle }) {
@@ -31,11 +41,17 @@ function CropOverlay() {
     chrome.storage.sync.get(
       ["cropXStart", "cropYStart", "cropXEnd", "cropYEnd"],
       (items) => {
-        setPos({ x: items.cropXStart ?? 100, y: items.cropYStart ?? 200 });
-        setDims({
-          width: (items.cropXEnd ?? 200) - (items.cropXStart ?? 100),
-          height: (items.cropYEnd ?? 200) - (items.cropYStart ?? 100),
-        });
+        const width = (items.cropXEnd ?? 200) - (items.cropXStart ?? 100);
+        const height = (items.cropYEnd ?? 200) - (items.cropYStart ?? 100);
+
+        const xRaw = items.cropXStart ?? 100;
+        const yRaw = items.cropYStart ?? 200;
+
+        const x = Math.max(0, Math.min(xRaw, cssW - width));
+        const y = Math.max(0, Math.min(yRaw, cssH - height));
+
+        setDims({ width, height });
+        setPos({ x, y });
         setHydrated(true);
       },
     );
