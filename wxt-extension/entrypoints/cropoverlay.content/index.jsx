@@ -29,7 +29,7 @@ export default defineContentScript({
       },
     });
 
-    document.addEventListener("keydown", (e) => {
+    function onKeyDown(e) {
       if (e.ctrlKey && e.key.toLowerCase() === "u") {
         e.preventDefault();
         if (!ui.mounted) {
@@ -40,7 +40,9 @@ export default defineContentScript({
         e.preventDefault();
         ui.remove();
       }
-    });
+    }
+
+    document.addEventListener("keydown", (e) => onKeyDown(e));
     ctx.onInvalidated(() => document.removeEventListener("keydown", onKeyDown));
   },
 });

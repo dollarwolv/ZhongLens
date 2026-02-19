@@ -24,8 +24,8 @@ export default defineContentScript({
       },
     });
 
-    document.addEventListener("keydown", (e) => {
-      if (e.ctrlKey && e.key.toLowerCase() === "b") {
+    function onKeyDown(e) {
+      if (e.ctrlKey && e.key.toLowerCase() === "o") {
         e.preventDefault();
         if (!ui.mounted) {
           ui.mount();
@@ -35,7 +35,9 @@ export default defineContentScript({
         e.preventDefault();
         ui.remove();
       }
-    });
+    }
+
+    document.addEventListener("keydown", (e) => onKeyDown(e));
     ctx.onInvalidated(() => document.removeEventListener("keydown", onKeyDown));
   },
 });
