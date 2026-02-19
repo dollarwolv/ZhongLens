@@ -1,6 +1,6 @@
 import ReactDOM from "react-dom/client";
 import CropOverlay from "./CropOverlay";
-import "~/assets/tailwind.css";
+import "~/assets/tailwind.content.css";
 
 export default defineContentScript({
   matches: ["<all_urls>"],

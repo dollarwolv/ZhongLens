@@ -1,20 +1,15 @@
 import ReactDOM from "react-dom/client";
 import Overlay from "./Overlay";
-import "~/assets/tailwind.css";
+import "~/assets/tailwind.content.css";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
-  cssInjectionMode: "ui",
   async main(ctx) {
-    const ui = await createShadowRootUi(ctx, {
-      name: "subtitle-overlay-chinese-ocr",
+    const ui = await createIntegratedUi(ctx, {
       position: "fixed",
       anchor: "body",
       onMount: (container) => {
-        const app = document.createElement("div");
-        container.append(app);
-
-        const root = ReactDOM.createRoot(app);
+        const root = ReactDOM.createRoot(container);
         root.render(
           <Overlay
             onClose={() => {

@@ -1,0 +1,35 @@
+@import "shadcn/tailwind.css";
+
+@layer theme, base, components, utilities;
+
+/* Keep Tailwind variables/theme */
+@import "tailwindcss/theme.css" layer(theme);
+
+/* IMPORTANT: do NOT import preflight */
+/* @import "tailwindcss/preflight.css" layer(base); */
+
+/* Keep utilities (what you actually want) */
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* Optional: animations if you use them */
+@import "tw-animate-css";
+
+/* If shadcn's css includes base/global stuff, avoid importing it globally here.
+   Prefer generating only the component styles you need, or copy the minimal vars into your overlay root. */
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-neon-green: #39ff14;
+}
+
+.react-resizable > .react-resizable-handle {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #39ff14;
+  border-bottom: 2px solid #39ff14;
+}

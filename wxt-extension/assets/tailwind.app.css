@@ -2,12 +2,6 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
-
-@theme {
-  --color-neon-green: #39ff14;
-}
-
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -127,15 +121,4 @@
     @apply bg-background text-foreground;
     @apply bg-background text-foreground;
   }
-}
-
-.react-resizable > .react-resizable-handle {
-  content: "";
-  position: absolute;
-  right: 3px;
-  bottom: 3px;
-  width: 8px;
-  height: 8px;
-  border-right: 2px solid #39ff14;
-  border-bottom: 2px solid #39ff14;
 }

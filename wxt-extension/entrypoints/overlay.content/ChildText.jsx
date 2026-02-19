@@ -1,6 +1,6 @@
 import { useLayoutEffect } from "react";
 import { useState, useRef } from "react";
-import "~/assets/tailwind.css";
+import "~/assets/tailwind.content.css";
 
 function ChildText({ entry, scalingFactor, startX, startY }) {
   const text = entry[0];
@@ -35,7 +35,7 @@ function ChildText({ entry, scalingFactor, startX, startY }) {
   return (
     <span
       ref={spanRef}
-      className="text-neon-green absolute whitespace-pre"
+      className="text-neon-green pointer-events-auto absolute whitespace-pre"
       style={{
         top: `${y1 / scalingFactor}px`,
         left: `${x1 / scalingFactor}px`,
