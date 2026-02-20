@@ -3,7 +3,7 @@ import { Resizable } from "react-resizable";
 import { useState, useRef, useEffect } from "react";
 import Draggable from "react-draggable";
 
-function CropOverlay() {
+export default ({ onClose }) => {
   const [dims, setDims] = useState({ width: 200, height: 200 });
   const [pos, setPos] = useState({ x: 200, y: 200 });
   const [hydrated, setHydrated] = useState(false);
@@ -58,7 +58,7 @@ function CropOverlay() {
   }, []);
 
   return (
-    <div className="bg-white-10 fixed top-0 left-0 z-999 h-screen w-screen">
+    <div className="bg-white-10 font-noto pointer-events-none fixed top-0 left-0 z-999 h-screen w-screen">
       <Draggable
         position={pos}
         nodeRef={childRef}
@@ -66,7 +66,10 @@ function CropOverlay() {
         onStop={saveArea}
         cancel=".react-resizable-handle"
       >
-        <div ref={childRef} className={`${hydrated ? "show" : "hidden"}`}>
+        <div
+          ref={childRef}
+          className={`${hydrated ? "show" : "hidden"} pointer-events-auto`}
+        >
           <Resizable
             height={dims.height}
             width={dims.width}
@@ -76,7 +79,7 @@ function CropOverlay() {
           >
             <div
               style={{ width: `${dims.width}px`, height: `${dims.height}px` }}
-              className="border-neon-green z-1000 flex cursor-grab items-center justify-center border-4 shadow-[0_0_999px_60px]"
+              className="border-neon-green z-1000 flex cursor-grab items-center justify-center border-2 border-dotted shadow-[0_0_999px_60px]"
             >
               <span className="text-neon-green">
                 this is the region where OCR will be performed. drag/resize to
@@ -86,8 +89,12 @@ function CropOverlay() {
           </Resizable>
         </div>
       </Draggable>
+      <button
+        onClick={onClose}
+        className="bg-neon-green chinese-ocr-done-button pointer-events-auto absolute bottom-1/100 left-1/2 -translate-x-1/2 -translate-y-9/10 rounded-2xl p-2"
+      >
+        Done
+      </button>
     </div>
   );
-}
-
-export default CropOverlay;
+};
