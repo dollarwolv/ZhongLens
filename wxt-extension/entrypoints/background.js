@@ -1,4 +1,4 @@
-import "webext-bridge/background";
+import { onMessage } from "webext-bridge/background";
 
 export default defineBackground(() => {
   chrome.runtime.onInstalled.addListener(() => {
@@ -150,105 +150,104 @@ export default defineBackground(() => {
     return { outBlob, outDataUrl, scalingFactor };
   }
 
-  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (msg.type !== "CAPTURE_TAB") return;
+  onMessage("CAPTURE_TAB", async ({ data }) => {
+    try {
+      // take screenshot, data gets stored in dataURL
+      const dataUrl = await chrome.tabs.captureVisibleTab();
 
-    (async () => {
-      try {
-        const dataUrl = await chrome.tabs.captureVisibleTab();
+      // get settings
+      const {
+        serverProcessingEnabled,
+        crop,
+        cropXStart,
+        cropYStart,
+        cropXEnd,
+        cropYEnd,
+      } = await chrome.storage.sync.get([
+        "serverProcessingEnabled",
+        "crop",
+        "cropXStart",
+        "cropYStart",
+        "cropXEnd",
+        "cropYEnd",
+      ]);
 
-        const {
-          serverProcessingEnabled,
-          cropXStart,
-          cropYStart,
-          cropXEnd,
-          cropYEnd,
-        } = await chrome.storage.sync.get([
-          "serverProcessingEnabled",
-          "cropXStart",
-          "cropYStart",
-          "cropXEnd",
-          "cropYEnd",
-        ]);
-
-        if (serverProcessingEnabled) {
-          // downscale URL to CSS Viewport size
-          const { outBlob, outDataUrl, scalingFactor } =
-            await downscaleDataUrlToViewport(dataUrl, msg.cssW, msg.cssH, {
-              crop: true,
-              startX: cropXStart ?? 0,
-              startY: cropYStart ?? 0,
-              endX: cropXEnd ?? msg.cssW,
-              endY: cropYEnd ?? msg.cssH,
-            });
-
-          // create form to send data over to backend and attach outBlob
-          const form = new FormData();
-          form.append("raw_img", outBlob, "frame.jpeg");
-
-          const res = await fetch("http://127.0.0.1:8000/ocr", {
-            method: "POST",
-            body: form,
+      if (serverProcessingEnabled) {
+        // downscale URL to CSS Viewport size
+        const { outBlob, outDataUrl, scalingFactor } =
+          await downscaleDataUrlToViewport(dataUrl, data.cssW, data.cssH, {
+            crop: crop,
+            startX: cropXStart ?? 0,
+            startY: cropYStart ?? 0,
+            endX: cropXEnd ?? data.cssW,
+            endY: cropYEnd ?? data.cssH,
           });
 
-          if (!res.ok) throw new Error(await res.text());
-          const result = await res.json();
+        // create form to send data over to backend and attach outBlob
+        const form = new FormData();
+        form.append("raw_img", outBlob, "frame.jpeg");
 
-          console.log(result.result.res);
-          console.log("scaling factor: " + scalingFactor);
+        const res = await fetch("http://127.0.0.1:8000/ocr", {
+          method: "POST",
+          body: form,
+        });
 
-          sendResponse({
-            ok: true,
-            mode: "server_ocr",
-            result: result.result.res,
-            scalingFactor,
-            startX: cropXStart,
-            startY: cropYStart,
+        if (!res.ok) throw new Error(await res.text());
+        const result = await res.json();
+
+        return {
+          ok: true,
+          mode: "server_ocr",
+          result: result.result.res,
+          scalingFactor,
+          startX: cropXStart,
+          startY: cropYStart,
+        };
+
+        // if server processing is DISABLED (local processing):
+      } else {
+        // ensure that tesseract worker is active
+        await ensureOffscreen();
+
+        // get processed
+        const { outBlob, outDataUrl, scalingFactor } =
+          await downscaleDataUrlToViewport(dataUrl, data.cssW, data.cssH, {
+            imgFormat: "png",
+            downscaleFurther: false,
+            convertToGrayscale: false,
+            crop: crop,
+            startX: cropXStart ?? 0,
+            startY: cropYStart ?? 0,
+            endX: cropXEnd ?? data.cssW,
+            endY: cropYEnd ?? data.cssH,
           });
 
-          // if server processing is DISABLED (local processing):
-        } else {
-          await ensureOffscreen();
+        // apparently you cannot communicate with offscreen documents using webext-bridge,
+        // so this one uses the regular chrome API
+        const res = await new Promise((resolve) => {
+          chrome.runtime.sendMessage(
+            { type: "OCR_LOCAL", imageDataUrl: outDataUrl },
+            resolve,
+          );
+        });
 
-          const { outBlob, outDataUrl, scalingFactor } =
-            await downscaleDataUrlToViewport(dataUrl, msg.cssW, msg.cssH, {
-              imgFormat: "png",
-              downscaleFurther: false,
-              convertToGrayscale: false,
-              crop: true,
-              startX: cropXStart ?? 0,
-              startY: cropYStart ?? 0,
-              endX: cropXEnd ?? msg.cssW,
-              endY: cropYEnd ?? msg.cssH,
-            });
+        if (!res?.ok) throw new Error(res?.error || "Local OCR failed");
+        if (res.result.blocks.length === 0)
+          throw new Error("No text found in the image. Please try again.");
 
-          const res = await new Promise((resolve) => {
-            chrome.runtime.sendMessage(
-              { type: "OCR_LOCAL", imageDataUrl: outDataUrl },
-              resolve,
-            );
-          });
+        const result = res.result.blocks[0].paragraphs[0].lines;
 
-          if (!res?.ok) throw new Error(res?.error || "Local OCR failed");
-          if (res.result.blocks.length === 0)
-            throw new Error("No text found in the image. Please try again.");
-
-          const result = res.result.blocks[0].paragraphs[0].lines;
-
-          sendResponse({
-            ok: true,
-            mode: "local_ocr",
-            result,
-            scalingFactor,
-            startX: cropXStart,
-            startY: cropYStart,
-          });
-        }
-      } catch (err) {
-        sendResponse({ ok: false, error: String(err) });
+        return {
+          ok: true,
+          mode: "local_ocr",
+          result,
+          scalingFactor,
+          startX: cropXStart,
+          startY: cropYStart,
+        };
       }
-    })();
-
-    return true;
+    } catch (err) {
+      return { ok: false, error: String(err) };
+    }
   });
 });

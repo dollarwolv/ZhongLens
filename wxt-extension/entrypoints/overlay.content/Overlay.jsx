@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import ChildText from "./ChildText";
 import "~/assets/tailwind.content.css";
 import { Checkbox } from "@/components/ui/checkbox";
+import { sendMessage } from "webext-bridge/content-script";
 
 export default ({ onClose }) => {
   const [loading, setLoading] = useState(false);
@@ -14,11 +15,7 @@ export default ({ onClose }) => {
   async function screenshot() {
     setLoading(true);
     const { cssW, cssH } = getViewportCssSize();
-    const res = await chrome.runtime.sendMessage({
-      type: "CAPTURE_TAB",
-      cssW,
-      cssH,
-    });
+    const res = await sendMessage("CAPTURE_TAB", { cssW, cssH }, "background");
     if (!res.ok) {
       setError(res?.error);
       setLoading(false);
