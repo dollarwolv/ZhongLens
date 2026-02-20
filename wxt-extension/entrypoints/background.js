@@ -1,4 +1,5 @@
 import { onMessage } from "webext-bridge/background";
+import "webext-bridge/background";
 
 export default defineBackground(() => {
   chrome.runtime.onInstalled.addListener(() => {

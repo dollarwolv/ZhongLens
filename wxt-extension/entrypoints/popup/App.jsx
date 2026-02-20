@@ -12,15 +12,14 @@ import zhongLensIcon from "@/assets/icon_zi_full.png";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Field, FieldLabel } from "@/components/ui/field";
-import { sendMessage } from "webext-bridge/popup";
+import { sendMessage, onMessage } from "webext-bridge/popup";
 
 function App() {
   const [settings, setSettings] = useState({});
   const [error, setError] = useState("");
+  const [cropOverlayOpen, setCropOverlayOpen] = useState(false);
 
-  async function openCropOverlay() {
-    console.log("button clicked");
-
+  async function controlCropOverlay() {
     const [tab] = await chrome.tabs.query({
       active: true,
       currentWindow: true,
@@ -30,9 +29,10 @@ function App() {
       setError("No active tab found.");
       return;
     }
+
     const res = await sendMessage(
-      "OPEN_CROP_OVERLAY",
-      { ignoreCasing: true },
+      "TOGGLE_CROP_OVERLAY",
+      {},
       `content-script@${tab.id}`,
     );
 
@@ -42,8 +42,10 @@ function App() {
           "Something went wrong opening crop overlay. Please try again.",
       );
       console.log(res?.error);
+      return;
     }
 
+    setCropOverlayOpen(res.mounted);
     console.log("res", res);
   }
 
@@ -51,6 +53,23 @@ function App() {
     (async () => {
       const settingsFromStorage = await chrome.storage.sync.get(null);
       setSettings(settingsFromStorage);
+
+      // get crop overlay state to display
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      const { ok, error, mounted } = await sendMessage(
+        "GET_CROP_OVERLAY_STATE",
+        {},
+        `content-script@${tab.id}`,
+      );
+      if (!ok) {
+        setError(
+          error ||
+            "Something went wrong getting crop overlay state. Please try again.",
+        );
+      } else setCropOverlayOpen(mounted);
     })();
   }, []);
 
@@ -116,8 +135,8 @@ function App() {
           </button>
         </div>
         {settings.crop && (
-          <Button size={"xs"} variant={"ghost"} onClick={openCropOverlay}>
-            Select region to crop
+          <Button size={"xs"} variant={"ghost"} onClick={controlCropOverlay}>
+            {cropOverlayOpen ? "Close crop overlay" : "Select region to crop"}
           </Button>
         )}
         <Button>

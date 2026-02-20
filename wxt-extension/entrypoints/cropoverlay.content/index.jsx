@@ -43,20 +43,30 @@ export default defineContentScript({
       }
     }
 
-    onMessage("OPEN_CROP_OVERLAY", () => {
-      console.log("message received");
-      if (!ui.mounted) {
-        try {
+    onMessage("TOGGLE_CROP_OVERLAY", () => {
+      try {
+        if (!ui.mounted) {
           ui.mount();
-          return { ok: true };
-        } catch (error) {
-          console.error(error);
-          return { ok: false, error: String(error) };
+          return { ok: true, mounted: true };
+        } else {
+          ui.remove();
+          return { ok: true, mounted: false };
         }
+      } catch (error) {
+        return { ok: false, error: String(error) };
       }
     });
 
-    document.addEventListener("keydown", (e) => onKeyDown(e));
+    onMessage("GET_CROP_OVERLAY_STATE", () => {
+      try {
+        if (ui.mounted) return { ok: true, mounted: true };
+        if (!ui.mounted) return { ok: true, mounted: false };
+      } catch (error) {
+        return { ok: false, error: String(error) };
+      }
+    });
+
+    document.addEventListener("keydown", onKeyDown);
     ctx.onInvalidated(() => document.removeEventListener("keydown", onKeyDown));
   },
 });
