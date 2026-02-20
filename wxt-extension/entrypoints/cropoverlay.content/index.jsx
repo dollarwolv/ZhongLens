@@ -1,6 +1,6 @@
 import ReactDOM from "react-dom/client";
 import CropOverlay from "./CropOverlay";
-import "~/assets/tailwind.content.css";
+import "~/assets/tailwind.app.css";
 import { onMessage } from "webext-bridge/content-script";
 
 export default defineContentScript({

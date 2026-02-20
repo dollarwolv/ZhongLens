@@ -4,6 +4,8 @@
 
 @theme {
   --color-beige: #fefbf2;
+  --color-neon-green: #39ff14;
+  --font-noto: "Noto Sans", sans-serif;
 }
 
 @theme inline {
@@ -125,4 +127,15 @@
     @apply bg-background text-foreground;
     @apply bg-background text-foreground;
   }
+}
+
+.react-resizable > .react-resizable-handle {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #39ff14;
+  border-bottom: 2px solid #39ff14;
 }
