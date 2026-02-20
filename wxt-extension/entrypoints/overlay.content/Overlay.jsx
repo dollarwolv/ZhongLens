@@ -9,6 +9,7 @@ export default ({ onClose }) => {
   const [error, setError] = useState("");
   const [data, setData] = useState([]);
   const [scalingFactor, setScalingFactor] = useState(1);
+  const [crop, setCrop] = useState(false);
   const [startX, setStartX] = useState(0);
   const [startY, setStartY] = useState(0);
 
@@ -52,6 +53,7 @@ export default ({ onClose }) => {
     setStartX(res?.startX);
     setStartY(res?.startY);
     setScalingFactor(res?.scalingFactor);
+    setCrop(res?.crop);
     setLoading(false);
   }
 
@@ -120,6 +122,7 @@ export default ({ onClose }) => {
             entry={entry}
             key={index}
             scalingFactor={scalingFactor}
+            crop={crop}
             startX={startX}
             startY={startY}
           />

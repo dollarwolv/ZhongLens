@@ -178,10 +178,10 @@ export default defineBackground(() => {
         const { outBlob, outDataUrl, scalingFactor } =
           await downscaleDataUrlToViewport(dataUrl, data.cssW, data.cssH, {
             crop: crop,
-            startX: cropXStart ?? 0,
-            startY: cropYStart ?? 0,
-            endX: cropXEnd ?? data.cssW,
-            endY: cropYEnd ?? data.cssH,
+            startX: crop ? cropXStart : 0,
+            startY: crop ? cropYStart : 0,
+            endX: crop ? cropXEnd : data.cssW,
+            endY: crop ? cropYEnd : data.cssH,
           });
 
         // create form to send data over to backend and attach outBlob
@@ -201,6 +201,7 @@ export default defineBackground(() => {
           mode: "server_ocr",
           result: result.result.res,
           scalingFactor,
+          crop: crop,
           startX: cropXStart,
           startY: cropYStart,
         };
@@ -217,10 +218,10 @@ export default defineBackground(() => {
             downscaleFurther: false,
             convertToGrayscale: false,
             crop: crop,
-            startX: cropXStart ?? 0,
-            startY: cropYStart ?? 0,
-            endX: cropXEnd ?? data.cssW,
-            endY: cropYEnd ?? data.cssH,
+            startX: crop ? cropXStart : 0,
+            startY: crop ? cropYStart : 0,
+            endX: crop ? cropXEnd : data.cssW,
+            endY: crop ? cropYEnd : data.cssH,
           });
 
         // apparently you cannot communicate with offscreen documents using webext-bridge,
@@ -243,6 +244,7 @@ export default defineBackground(() => {
           mode: "local_ocr",
           result,
           scalingFactor,
+          crop,
           startX: cropXStart,
           startY: cropYStart,
         };
