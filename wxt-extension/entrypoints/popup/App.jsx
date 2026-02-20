@@ -18,35 +18,34 @@ function App() {
   const [settings, setSettings] = useState({});
   const [error, setError] = useState("");
   const [cropOverlayOpen, setCropOverlayOpen] = useState(false);
+  const [OCROverlayOpen, setOCROverlayOpen] = useState(false);
 
   async function controlCropOverlay() {
-    const [tab] = await chrome.tabs.query({
-      active: true,
-      currentWindow: true,
-    });
+    try {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
 
-    if (!tab?.id) {
-      setError("No active tab found.");
-      return;
+      if (!tab?.id) {
+        throw new Error("No active tab found.");
+      }
+
+      const res = await chrome.tabs.sendMessage(tab.id, {
+        type: "TOGGLE_CROP_OVERLAY",
+      });
+
+      if (!res?.ok) {
+        throw new Error(
+          res?.error ||
+            "Something went wrong opening crop overlay. Please try again.",
+        );
+      }
+
+      setCropOverlayOpen(res.mounted);
+    } catch (err) {
+      setError(err.message);
     }
-
-    const res = await sendMessage(
-      "TOGGLE_CROP_OVERLAY",
-      {},
-      `content-script@${tab.id}`,
-    );
-
-    if (!res || !res?.ok) {
-      setError(
-        res?.error ||
-          "Something went wrong opening crop overlay. Please try again.",
-      );
-      console.log(res?.error);
-      return;
-    }
-
-    setCropOverlayOpen(res.mounted);
-    console.log("res", res);
   }
 
   useEffect(() => {
@@ -54,22 +53,30 @@ function App() {
       const settingsFromStorage = await chrome.storage.sync.get(null);
       setSettings(settingsFromStorage);
 
-      // get crop overlay state to display
-      const [tab] = await chrome.tabs.query({
-        active: true,
-        currentWindow: true,
-      });
-      const { ok, error, mounted } = await sendMessage(
-        "GET_CROP_OVERLAY_STATE",
-        {},
-        `content-script@${tab.id}`,
-      );
-      if (!ok) {
-        setError(
-          error ||
-            "Something went wrong getting crop overlay state. Please try again.",
-        );
-      } else setCropOverlayOpen(mounted);
+      try {
+        const [tab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+
+        if (!tab?.id) {
+          throw new Error("No active tab found.");
+        }
+
+        const res = await chrome.tabs.sendMessage(tab.id, {
+          type: "GET_CROP_OVERLAY_STATE",
+        });
+
+        if (!res?.ok) {
+          throw new Error(
+            res?.error || "Something went wrong getting crop overlay state.",
+          );
+        }
+
+        setCropOverlayOpen(res.mounted);
+      } catch (err) {
+        setError(err.message);
+      }
     })();
   }, []);
 

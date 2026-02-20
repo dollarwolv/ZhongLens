@@ -43,26 +43,31 @@ export default defineContentScript({
       }
     }
 
-    onMessage("TOGGLE_CROP_OVERLAY", () => {
-      try {
-        if (!ui.mounted) {
-          ui.mount();
-          return { ok: true, mounted: true };
-        } else {
-          ui.remove();
-          return { ok: true, mounted: false };
-        }
-      } catch (error) {
-        return { ok: false, error: String(error) };
-      }
-    });
+    console.log("registering hndlasders");
 
-    onMessage("GET_CROP_OVERLAY_STATE", () => {
-      try {
-        if (ui.mounted) return { ok: true, mounted: true };
-        if (!ui.mounted) return { ok: true, mounted: false };
-      } catch (error) {
-        return { ok: false, error: String(error) };
+    chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+      if (msg?.type === "TOGGLE_CROP_OVERLAY") {
+        try {
+          if (!ui.mounted) {
+            ui.mount();
+            sendResponse({ ok: true, mounted: true });
+          } else {
+            ui.remove();
+            sendResponse({ ok: true, mounted: false });
+          }
+        } catch (error) {
+          sendResponse({ ok: false, error: String(error) });
+        }
+        return; // sync response
+      }
+
+      if (msg?.type === "GET_CROP_OVERLAY_STATE") {
+        try {
+          sendResponse({ ok: true, mounted: !!ui.mounted });
+        } catch (error) {
+          sendResponse({ ok: false, error: String(error) });
+        }
+        return; // sync response
       }
     });
 
