@@ -2,6 +2,7 @@ import "react-resizable/css/styles.css";
 import { Resizable } from "react-resizable";
 import { useState, useRef, useEffect } from "react";
 import Draggable from "react-draggable";
+import { Button } from "@/components/ui/button";
 
 export default ({ onClose }) => {
   const [dims, setDims] = useState({ width: 200, height: 200 });
@@ -79,22 +80,23 @@ export default ({ onClose }) => {
           >
             <div
               style={{ width: `${dims.width}px`, height: `${dims.height}px` }}
-              className="border-neon-green z-1000 flex cursor-grab items-center justify-center border-2 border-dotted shadow-[0_0_999px_60px]"
+              className="border-neon-green z-1000 flex cursor-grab items-center justify-center border-2 border-dotted p-2 shadow-[0_0_999px_60px]"
             >
-              <span className="text-neon-green">
-                this is the region where OCR will be performed. drag/resize to
-                adjust.
+              <span className="text-neon-green/70 text-center">
+                Character recognition will only be performed in this region.
+                This both helps performance and accuracy. Drag/Resize to adjust.
               </span>
             </div>
           </Resizable>
         </div>
       </Draggable>
-      <button
+      <Button
         onClick={onClose}
-        className="bg-neon-green chinese-ocr-done-button pointer-events-auto absolute bottom-1/100 left-1/2 -translate-x-1/2 -translate-y-9/10 rounded-2xl p-2"
+        size={"lg"}
+        className="chinese-ocr-done-button bg-neon-green hover:bg-neon-green/80 pointer-events-auto absolute bottom-1/20 left-1/2 text-2xl text-black"
       >
         Done
-      </button>
+      </Button>
     </div>
   );
 };
