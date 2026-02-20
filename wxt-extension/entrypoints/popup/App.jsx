@@ -48,11 +48,40 @@ function App() {
     }
   }
 
+  async function controlOCROverlay() {
+    try {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+
+      if (!tab?.id) {
+        throw new Error("No active tab found.");
+      }
+
+      const res = await chrome.tabs.sendMessage(tab.id, {
+        type: "TOGGLE_OCR_OVERLAY",
+      });
+
+      if (!res?.ok) {
+        throw new Error(
+          res?.error ||
+            "Something went wrong opening OCR overlay. Please try again.",
+        );
+      }
+
+      setOCROverlayOpen(res.mounted);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   useEffect(() => {
     (async () => {
       const settingsFromStorage = await chrome.storage.sync.get(null);
       setSettings(settingsFromStorage);
 
+      // crop overlay
       try {
         const [tab] = await chrome.tabs.query({
           active: true,
@@ -77,6 +106,32 @@ function App() {
       } catch (err) {
         setError(err.message);
       }
+
+      // ocr overlay
+      try {
+        const [tab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+
+        if (!tab?.id) {
+          throw new Error("No active tab found.");
+        }
+
+        const res = await chrome.tabs.sendMessage(tab.id, {
+          type: "GET_OCR_OVERLAY_STATE",
+        });
+
+        if (!res?.ok) {
+          throw new Error(
+            res?.error || "Something went wrong getting OCR overlay state.",
+          );
+        }
+
+        setOCROverlayOpen(res.mounted);
+      } catch (err) {
+        setError(err.message);
+      }
     })();
   }, []);
 
@@ -92,10 +147,13 @@ function App() {
         <img src="/icon/128.png" alt="ZhongLens logo" className="w-10" />
         <h1 className="text-2xl">ZhongLens v0</h1>
       </div>
-      <button className="bg-beige mx-auto flex h-50 cursor-pointer flex-col items-center justify-center rounded-lg px-3.5 py-2 shadow-lg">
+      <button
+        className="bg-beige mx-auto flex h-50 cursor-pointer flex-col items-center justify-center rounded-lg px-3.5 py-2 shadow-lg"
+        onClick={controlOCROverlay}
+      >
         <img src={zhongLensIcon} className="w-35" alt="" />
         <span className="text-2xl font-semibold whitespace-nowrap">
-          Capture Tab
+          {OCROverlayOpen ? "Close overlay" : "Capture Tab"}
         </span>
       </button>
       <div className="flex flex-col gap-2">
