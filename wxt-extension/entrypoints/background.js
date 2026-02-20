@@ -1,3 +1,5 @@
+import "webext-bridge/background";
+
 export default defineBackground(() => {
   chrome.runtime.onInstalled.addListener(() => {
     const defaultSettings = {

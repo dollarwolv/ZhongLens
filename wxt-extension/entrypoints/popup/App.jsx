@@ -12,9 +12,40 @@ import zhongLensIcon from "@/assets/icon_zi_full.png";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Field, FieldLabel } from "@/components/ui/field";
+import { sendMessage } from "webext-bridge/popup";
 
 function App() {
   const [settings, setSettings] = useState({});
+  const [error, setError] = useState("");
+
+  async function openCropOverlay() {
+    console.log("button clicked");
+
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+
+    if (!tab?.id) {
+      setError("No active tab found.");
+      return;
+    }
+    const res = await sendMessage(
+      "OPEN_CROP_OVERLAY",
+      { ignoreCasing: true },
+      `content-script@${tab.id}`,
+    );
+
+    if (!res || !res?.ok) {
+      setError(
+        res?.error ||
+          "Something went wrong opening crop overlay. Please try again.",
+      );
+      console.log(res?.error);
+    }
+
+    console.log("res", res);
+  }
 
   useEffect(() => {
     (async () => {
@@ -85,7 +116,7 @@ function App() {
           </button>
         </div>
         {settings.crop && (
-          <Button size={"xs"} variant={"ghost"}>
+          <Button size={"xs"} variant={"ghost"} onClick={openCropOverlay}>
             Select region to crop
           </Button>
         )}
