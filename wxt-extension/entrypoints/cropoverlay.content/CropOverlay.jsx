@@ -8,6 +8,7 @@ export default ({ onClose }) => {
   const [dims, setDims] = useState({ width: 200, height: 200 });
   const [pos, setPos] = useState({ x: 200, y: 200 });
   const [hydrated, setHydrated] = useState(false);
+  const [crop, setCrop] = useState(false);
 
   function getViewportCssSize() {
     const vv = window.visualViewport;
@@ -38,9 +39,18 @@ export default ({ onClose }) => {
     });
   }
 
+  function enableCrop() {
+    try {
+      chrome.storage.sync.set({ crop: true });
+      setCrop(true);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   useEffect(() => {
     chrome.storage.sync.get(
-      ["cropXStart", "cropYStart", "cropXEnd", "cropYEnd"],
+      ["cropXStart", "cropYStart", "cropXEnd", "cropYEnd", "crop"],
       (items) => {
         const width = (items.cropXEnd ?? 200) - (items.cropXStart ?? 100);
         const height = (items.cropYEnd ?? 200) - (items.cropYStart ?? 100);
@@ -53,6 +63,7 @@ export default ({ onClose }) => {
 
         setDims({ width, height });
         setPos({ x, y });
+        setCrop(items.crop);
         setHydrated(true);
       },
     );
@@ -60,6 +71,19 @@ export default ({ onClose }) => {
 
   return (
     <div className="bg-white-10 font-noto pointer-events-none fixed top-0 left-0 z-999 h-screen w-screen">
+      <div className="absolute top-1/20 left-1/2 flex -translate-x-1/2 flex-col items-center justify-center gap-4">
+        <span className="text-neon-green/70 text-sm">
+          Cropping is currently {crop ? "enabled" : "disabled"}.
+        </span>
+        {!crop && (
+          <Button
+            onClick={enableCrop}
+            className="bg-neon-green hover:bg-neon-green/80 pointer-events-auto text-black"
+          >
+            Click here to enable cropping.
+          </Button>
+        )}
+      </div>
       <Draggable
         position={pos}
         nodeRef={childRef}
@@ -93,7 +117,7 @@ export default ({ onClose }) => {
       <Button
         onClick={onClose}
         size={"lg"}
-        className="chinese-ocr-done-button bg-neon-green hover:bg-neon-green/80 pointer-events-auto absolute bottom-1/20 left-1/2 text-2xl text-black"
+        className="bg-neon-green hover:bg-neon-green/80 pointer-events-auto absolute bottom-1/20 left-1/2 -translate-x-1/2 text-2xl text-black"
       >
         Done
       </Button>
