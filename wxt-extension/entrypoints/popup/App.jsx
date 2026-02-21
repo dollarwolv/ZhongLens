@@ -19,6 +19,7 @@ function App() {
   const [error, setError] = useState("");
   const [cropOverlayOpen, setCropOverlayOpen] = useState(false);
   const [OCROverlayOpen, setOCROverlayOpen] = useState(false);
+  const [cropDims, setCropDims] = useState({});
 
   async function controlCropOverlay() {
     try {
@@ -133,6 +134,19 @@ function App() {
         setError(err.message);
       }
     })();
+
+    // get crop settings to display
+    chrome.storage.sync.get(
+      ["cropXStart", "cropYStart", "cropXEnd", "cropYEnd"],
+      (items) => {
+        setCropDims({
+          cropXStart: items.cropXStart,
+          cropYStart: items.cropYStart,
+          cropXEnd: items.cropXEnd,
+          cropYEnd: items.cropYEnd,
+        });
+      },
+    );
   }, []);
 
   useEffect(() => {
@@ -200,9 +214,19 @@ function App() {
           </button>
         </div>
         {settings.crop && (
-          <Button size={"xs"} variant={"ghost"} onClick={controlCropOverlay}>
-            {cropOverlayOpen ? "Close crop overlay" : "Select region to crop"}
-          </Button>
+          <div className="flex flex-col justify-center gap-2">
+            <span className="text-xs font-extralight">
+              Currently cropping to:{" "}
+              {`(${cropDims.cropXStart} | ${cropDims.cropYStart}), (${cropDims.cropYEnd} | ${cropDims.cropYEnd})`}
+            </span>
+            <Button
+              size={"xs"}
+              variant={"secondary"}
+              onClick={controlCropOverlay}
+            >
+              {cropOverlayOpen ? "Close crop overlay" : "Select region to crop"}
+            </Button>
+          </div>
         )}
         <Button>
           <CircleArrowUp color="white" />
