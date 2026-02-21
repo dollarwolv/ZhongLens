@@ -14,6 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { sendMessage, onMessage } from "webext-bridge/popup";
 
+import { Link } from "react-router";
+
 function App() {
   const [settings, setSettings] = useState({});
   const [error, setError] = useState("");
@@ -208,10 +210,13 @@ function App() {
             <Settings />
             <span className="text-sm">Settings</span>
           </button>
-          <button className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow">
+          <Link
+            className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
+            to={"/login"}
+          >
             <CircleUser />
             <span className="text-sm">Profile</span>
-          </button>
+          </Link>
         </div>
         {settings.crop && (
           <div className="flex flex-col justify-center gap-2">
