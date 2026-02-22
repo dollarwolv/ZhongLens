@@ -1,9 +1,9 @@
-import { LoginForm } from "@/components/login-form";
+import { SignupForm } from "@/components/signup-form";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "react-router";
 
-function Login() {
+function Signup() {
   return (
     <div className="flex w-80 flex-col items-center gap-3 p-4">
       <Link to={"/"}>
@@ -13,10 +13,10 @@ function Login() {
         </Button>
       </Link>
       <div className="w-full">
-        <LoginForm />
+        <SignupForm />
       </div>
     </div>
   );
 }
 
-export default Login;
+export default Signup;

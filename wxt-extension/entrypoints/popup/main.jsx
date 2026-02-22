@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import Login from "./Login.jsx";
+import Signup from "./Signup.jsx";
 import { HashRouter, Routes, Route } from "react-router";
 import "~/assets/tailwind.app.css";
 
@@ -11,6 +12,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
       </Routes>
     </HashRouter>
   </React.StrictMode>,
