@@ -12,15 +12,33 @@ import {
   FieldDescription,
   FieldGroup,
   FieldLabel,
+  FieldError,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-
 import { Link } from "react-router";
 
-export function LoginForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+import { sendMessage } from "webext-bridge/popup";
+
+export function LoginForm({ className, ...props }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [errors, setErrors] = useState([]);
+
+  async function signInWithEmail() {
+    const res = await sendMessage(
+      "AUTH_LOGIN",
+      { email: "dollarwolv@gmail.com", password: "example-password" },
+      "background",
+    );
+    if (!res?.ok) {
+      setErrors([{ message: res?.error }]);
+      console.log(res?.error);
+    } else {
+      setErrors([]);
+      console.log(res?.user);
+    }
+  }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -55,11 +73,29 @@ export function LoginForm({
                 <Input id="password" type="password" required />
               </Field>
               <Field>
-                <Button type="submit">Login</Button>
+                <Button
+                  type="submit"
+                  onClick={async (e) => {
+                    e.preventDefault;
+                    await signInWithEmail();
+                  }}
+                >
+                  Login
+                </Button>
+                <Button
+                  type="submit"
+                  onClick={async (e) => {
+                    e.preventDefault;
+                    await getSession();
+                  }}
+                >
+                  Login
+                </Button>
                 <FieldDescription className="text-center">
                   Don&apos;t have an account?{" "}
                   <Link to={"/signup"}>Sign up</Link>
                 </FieldDescription>
+                {errors && <FieldError errors={errors} />}
               </Field>
             </FieldGroup>
           </form>
