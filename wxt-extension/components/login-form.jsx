@@ -27,7 +27,7 @@ export function LoginForm({ className, ...props }) {
   async function signInWithEmail() {
     const res = await sendMessage(
       "AUTH_LOGIN",
-      { email: "dollarwolv@gmail.com", password: "example-password" },
+      { email, password },
       "background",
     );
     if (!res?.ok) {
@@ -49,7 +49,11 @@ export function LoginForm({ className, ...props }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+            }}
+          >
             <FieldGroup>
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -57,6 +61,10 @@ export function LoginForm({ className, ...props }) {
                   id="email"
                   type="email"
                   placeholder="m@example.com"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                  }}
                   required
                 />
               </Field>
@@ -70,7 +78,15 @@ export function LoginForm({ className, ...props }) {
                     Forgot your password?
                   </a>
                 </div>
-                <Input id="password" type="password" required />
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                  }}
+                  required
+                />
               </Field>
               <Field>
                 <Button
@@ -78,15 +94,6 @@ export function LoginForm({ className, ...props }) {
                   onClick={async (e) => {
                     e.preventDefault;
                     await signInWithEmail();
-                  }}
-                >
-                  Login
-                </Button>
-                <Button
-                  type="submit"
-                  onClick={async (e) => {
-                    e.preventDefault;
-                    await getSession();
                   }}
                 >
                   Login
