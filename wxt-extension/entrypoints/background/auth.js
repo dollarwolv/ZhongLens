@@ -52,6 +52,19 @@ export function initAuthHandlers() {
     }
   });
 
+  onMessage("AUTH_SIGNUP", async ({ data: { email, password } }) => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      if (error) throw error;
+      return { ok: true, user: data.user, session: data.session };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  });
+
   onMessage("AUTH_GET_TOKEN", async () => {
     try {
       const { data } = await supabase.auth.getSession();
