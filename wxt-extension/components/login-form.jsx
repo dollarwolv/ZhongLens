@@ -15,6 +15,7 @@ import {
   FieldError,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "./ui/spinner";
 import { Link } from "react-router";
 import { sendMessage } from "webext-bridge/popup";
 import { useNavigate } from "react-router";
@@ -23,10 +24,12 @@ export function LoginForm({ className, ...props }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
   async function signInWithEmail() {
+    setLoading(true);
     const res = await sendMessage(
       "AUTH_LOGIN",
       { email, password },
@@ -39,6 +42,7 @@ export function LoginForm({ className, ...props }) {
       setErrors([]);
       navigate("/");
     }
+    setLoading(false);
   }
 
   return (
@@ -98,7 +102,7 @@ export function LoginForm({ className, ...props }) {
                     await signInWithEmail();
                   }}
                 >
-                  Login
+                  {loading ? <Spinner /> : "Loading"}
                 </Button>
                 <FieldDescription className="text-center">
                   Don&apos;t have an account?{" "}

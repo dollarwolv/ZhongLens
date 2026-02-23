@@ -13,6 +13,7 @@ import {
   FieldLabel,
   FieldError,
 } from "@/components/ui/field";
+import { Spinner } from "./ui/spinner";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router";
 import { sendMessage } from "webext-bridge/popup";
@@ -24,6 +25,7 @@ export function SignupForm({ ...props }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState([]);
   const [emailSent, setEmailSent] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -31,6 +33,7 @@ export function SignupForm({ ...props }) {
     if (password !== confirmPassword)
       setErrors([{ message: "Passwords don't match." }]);
 
+    setLoading(true);
     const res = await sendMessage(
       "AUTH_SIGNUP",
       { email, password },
@@ -46,6 +49,7 @@ export function SignupForm({ ...props }) {
       setErrors([]);
       navigate("/");
     }
+    setLoading(false);
   }
 
   return (
@@ -131,7 +135,7 @@ export function SignupForm({ ...props }) {
                         await createAccount();
                       }}
                     >
-                      Create Account
+                      {loading ? <Spinner /> : "Create Account"}
                     </Button>
                     <FieldDescription className="px-6 text-center">
                       Already have an account?{" "}
