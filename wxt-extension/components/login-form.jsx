@@ -16,13 +16,15 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router";
-
 import { sendMessage } from "webext-bridge/popup";
+import { useNavigate } from "react-router";
 
 export function LoginForm({ className, ...props }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState([]);
+
+  const navigate = useNavigate();
 
   async function signInWithEmail() {
     const res = await sendMessage(
@@ -35,7 +37,7 @@ export function LoginForm({ className, ...props }) {
       console.log(res?.error);
     } else {
       setErrors([]);
-      console.log(res?.user);
+      navigate("/");
     }
   }
 
