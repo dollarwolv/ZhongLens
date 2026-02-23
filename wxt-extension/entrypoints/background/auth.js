@@ -51,4 +51,16 @@ export function initAuthHandlers() {
       return { ok: false, error: error.message };
     }
   });
+
+  onMessage("AUTH_GET_TOKEN", async () => {
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (!data?.session) {
+        throw new Error("no session found.");
+      }
+      return { ok: true, accessToken: data.session.access_token };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  });
 }

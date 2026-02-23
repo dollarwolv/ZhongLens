@@ -7,6 +7,7 @@ import {
   CloudOff,
   CircleArrowUp,
   Fullscreen,
+  LogIn,
 } from "lucide-react";
 import zhongLensIcon from "@/assets/icon_zi_full.png";
 import { Button } from "@/components/ui/button";
@@ -23,7 +24,10 @@ function App() {
   const [OCROverlayOpen, setOCROverlayOpen] = useState(false);
   const [cropDims, setCropDims] = useState({});
 
-  async function controlCropOverlay() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  async function getOverlayState(overlayType) {
+    // crop overlay
     try {
       const [tab] = await chrome.tabs.query({
         active: true,
@@ -35,23 +39,24 @@ function App() {
       }
 
       const res = await chrome.tabs.sendMessage(tab.id, {
-        type: "TOGGLE_CROP_OVERLAY",
+        type: `GET_${overlayType}_OVERLAY_STATE`,
       });
 
       if (!res?.ok) {
         throw new Error(
           res?.error ||
-            "Something went wrong opening crop overlay. Please try again.",
+            `Something went wrong getting ${overlayType} overlay state.`,
         );
       }
 
-      setCropOverlayOpen(res.mounted);
+      if (overlayType === "CROP") setCropOverlayOpen(res.mounted);
+      else if (overlayType === "OCR") setOCROverlayOpen(res.mounted);
     } catch (err) {
       setError(err.message);
     }
   }
 
-  async function controlOCROverlay() {
+  async function controlOverlay(overlayType) {
     try {
       const [tab] = await chrome.tabs.query({
         active: true,
@@ -63,19 +68,35 @@ function App() {
       }
 
       const res = await chrome.tabs.sendMessage(tab.id, {
-        type: "TOGGLE_OCR_OVERLAY",
+        type: `TOGGLE_${overlayType}_OVERLAY`,
       });
 
       if (!res?.ok) {
         throw new Error(
           res?.error ||
-            "Something went wrong opening OCR overlay. Please try again.",
+            `Something went wrong opening ${overlayType} overlay. Please try again.`,
         );
       }
 
-      setOCROverlayOpen(res.mounted);
+      if (overlayType === "CROP") setCropOverlayOpen(res.mounted);
+      if (overlayType === "OCR") setOCROverlayOpen(res.mounted);
     } catch (err) {
       setError(err.message);
+    }
+  }
+
+  async function getLoginStatus() {
+    try {
+      const res = await sendMessage("AUTH_GET_TOKEN", {}, "background");
+      if (!res?.ok) {
+        throw new Error(res?.error);
+      }
+
+      if (res?.accessToken) {
+        setIsLoggedIn(true);
+      }
+    } catch (error) {
+      setError(error.message);
     }
   }
 
@@ -83,58 +104,9 @@ function App() {
     (async () => {
       const settingsFromStorage = await chrome.storage.sync.get(null);
       setSettings(settingsFromStorage);
-
-      // crop overlay
-      try {
-        const [tab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-
-        if (!tab?.id) {
-          throw new Error("No active tab found.");
-        }
-
-        const res = await chrome.tabs.sendMessage(tab.id, {
-          type: "GET_CROP_OVERLAY_STATE",
-        });
-
-        if (!res?.ok) {
-          throw new Error(
-            res?.error || "Something went wrong getting crop overlay state.",
-          );
-        }
-
-        setCropOverlayOpen(res.mounted);
-      } catch (err) {
-        setError(err.message);
-      }
-
-      // ocr overlay
-      try {
-        const [tab] = await chrome.tabs.query({
-          active: true,
-          currentWindow: true,
-        });
-
-        if (!tab?.id) {
-          throw new Error("No active tab found.");
-        }
-
-        const res = await chrome.tabs.sendMessage(tab.id, {
-          type: "GET_OCR_OVERLAY_STATE",
-        });
-
-        if (!res?.ok) {
-          throw new Error(
-            res?.error || "Something went wrong getting OCR overlay state.",
-          );
-        }
-
-        setOCROverlayOpen(res.mounted);
-      } catch (err) {
-        setError(err.message);
-      }
+      getOverlayState("CROP");
+      getOverlayState("OCR");
+      getLoginStatus();
     })();
 
     // get crop settings to display
@@ -165,7 +137,7 @@ function App() {
       </div>
       <button
         className="bg-beige mx-auto flex h-50 cursor-pointer flex-col items-center justify-center rounded-lg px-3.5 py-2 shadow-lg"
-        onClick={controlOCROverlay}
+        onClick={() => controlOverlay("OCR")}
       >
         <img src={zhongLensIcon} className="w-35" alt="" />
         <span className="text-2xl font-semibold whitespace-nowrap">
@@ -210,13 +182,24 @@ function App() {
             <Settings />
             <span className="text-sm">Settings</span>
           </button>
-          <Link
-            className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
-            to={"/login"}
-          >
-            <CircleUser />
-            <span className="text-sm">Profile</span>
-          </Link>
+
+          {isLoggedIn ? (
+            <Link
+              className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
+              to={"/profile"}
+            >
+              <CircleUser />
+              <span className="text-sm">Profile</span>
+            </Link>
+          ) : (
+            <Link
+              className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
+              to={"/login"}
+            >
+              <LogIn />
+              <span className="text-sm">Login</span>
+            </Link>
+          )}
         </div>
         {settings.crop && (
           <div className="flex flex-col justify-center gap-2">
@@ -227,7 +210,7 @@ function App() {
             <Button
               size={"xs"}
               variant={"secondary"}
-              onClick={controlCropOverlay}
+              onClick={() => controlOverlay("CROP")}
             >
               {cropOverlayOpen ? "Close crop overlay" : "Select region to crop"}
             </Button>
