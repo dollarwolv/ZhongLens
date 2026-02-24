@@ -65,13 +65,31 @@ export function initAuthHandlers() {
     }
   });
 
-  onMessage("AUTH_GET_TOKEN", async () => {
+  onMessage("AUTH_GET_SESSION", async () => {
     try {
       const { data } = await supabase.auth.getSession();
+      console.log(data);
       if (!data?.session) {
         throw new Error("no session found.");
       }
-      return { ok: true, accessToken: data.session.access_token };
+      return { ok: true, session: data.session };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  });
+
+  onMessage("AUTH_UPDATE_USER", async ({ data: { email, password } }) => {
+    const updates = {};
+
+    if (email) updates.email = email;
+    if (password) updates.password = password;
+
+    try {
+      const { data, error } = await supabase.auth.updateUser(updates);
+      console.log(data, "data");
+      console.log(error, "error");
+      if (error) throw error;
+      return { ok: true, user: data.user };
     } catch (error) {
       return { ok: false, error: error.message };
     }

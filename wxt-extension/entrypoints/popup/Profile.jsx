@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/item";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
 import {
   Mail,
   Crown,
@@ -18,11 +19,84 @@ import {
   LogOut,
   ArrowLeft,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router";
+import { sendMessage } from "webext-bridge/popup";
 
 function Profile() {
   const [scansUsed, setScansUsed] = useState(25);
+
+  const [email, setEmail] = useState("");
+  const [updateEmail, setUpdateEmail] = useState(false);
+  const [updatedEmail, setUpdatedEmail] = useState("");
+
+  const [updatePassword, setUpdatePassword] = useState(false);
+  const [updatedPassword, setUpdatedPassword] = useState("");
+
+  const [emailConfirmationSent, setEmailConfirmationSent] = useState(false);
+  const [passwordUpdated, setPasswordUpdated] = useState(false);
+
+  const [error, setError] = useState("");
+
+  const handleEmailSave = async () => {
+    if (updatedEmail.trim() !== "") {
+      const res = await sendMessage(
+        "AUTH_UPDATE_USER",
+        { email: updatedEmail },
+        "background",
+      );
+      if (!res.ok) {
+        setError(
+          res.error || "There has been an error changing your password.",
+        );
+      } else {
+        setEmail(updatedEmail);
+        setUpdateEmail(false);
+        setEmailConfirmationSent(true);
+      }
+    }
+    setUpdatedEmail("");
+  };
+
+  const handleEmailCancel = () => {
+    setUpdatedEmail("");
+    setUpdateEmail(false);
+  };
+
+  const handlePasswordSave = async () => {
+    if (updatedPassword.trim() !== "") {
+      const res = await sendMessage(
+        "AUTH_UPDATE_USER",
+        { password: updatedPassword },
+        "background",
+      );
+      if (!res.ok) {
+        setError(
+          res.error || "There has been an error changing your password.",
+        );
+      } else {
+        setUpdatePassword(false);
+        setPasswordUpdated(true);
+      }
+    }
+    setUpdatedPassword("");
+  };
+
+  const handlePasswordCancel = () => {
+    setUpdatedPassword("");
+    setUpdatePassword(false);
+  };
+
+  useEffect(() => {
+    (async () => {
+      const res = await sendMessage("AUTH_GET_SESSION", {}, "background");
+      if (!res?.ok) {
+        setError(res.error || "There has been an error fetching your session.");
+      } else {
+        setEmail(res.session.user.email);
+      }
+    })();
+  }, []);
 
   return (
     <div className="relative flex w-100 flex-col items-center gap-10 p-4">
@@ -32,6 +106,7 @@ function Profile() {
           Back
         </Button>
       </Link>
+
       <div className="flex w-full flex-col items-center gap-2">
         <h1 className="text-3xl font-semibold">Account</h1>
         <ItemGroup className="w-full">
@@ -41,34 +116,107 @@ function Profile() {
             </ItemMedia>
             <ItemContent>
               <ItemTitle>Email address</ItemTitle>
-              <ItemDescription>dollarwolv@gmail.com</ItemDescription>
+              {updateEmail ? (
+                <Input
+                  id="updated-email"
+                  type="text"
+                  placeholder="New Email"
+                  value={updatedEmail}
+                  onChange={(e) => setUpdatedEmail(e.target.value)}
+                />
+              ) : emailConfirmationSent ? (
+                <ItemDescription>
+                  Confirmation email sent. Changes will take effect after
+                  confirmation.
+                </ItemDescription>
+              ) : (
+                <ItemDescription>{email}</ItemDescription>
+              )}
             </ItemContent>
             <ItemActions>
-              <Button size={"sm"} variant={"secondary"}>
-                Change
-              </Button>
+              {!emailConfirmationSent &&
+                (!updateEmail ? (
+                  <Button
+                    size={"sm"}
+                    variant={"secondary"}
+                    onClick={() => setUpdateEmail(true)}
+                  >
+                    Change
+                  </Button>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    <Button size={"sm"} onClick={handleEmailSave}>
+                      Save
+                    </Button>
+                    <Button
+                      variant={"secondary"}
+                      size={"sm"}
+                      onClick={handleEmailCancel}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ))}
             </ItemActions>
           </Item>
+
           <Item className="w-full">
             <ItemMedia variant={"icon"}>
               <KeyRound />
             </ItemMedia>
             <ItemContent>
               <ItemTitle>Password</ItemTitle>
-              <ItemDescription>*********</ItemDescription>
+              {updatePassword ? (
+                <Input
+                  id="updated-password"
+                  type="password"
+                  placeholder="New Password"
+                  value={updatedPassword}
+                  onChange={(e) => setUpdatedPassword(e.target.value)}
+                />
+              ) : passwordUpdated ? (
+                <ItemDescription>
+                  Password updated successfully.
+                </ItemDescription>
+              ) : (
+                <ItemDescription>*********</ItemDescription>
+              )}
             </ItemContent>
             <ItemActions>
-              <Button size={"sm"} variant={"secondary"}>
-                Change
-              </Button>
+              {!passwordUpdated &&
+                (!updatePassword ? (
+                  <Button
+                    size={"sm"}
+                    variant={"secondary"}
+                    onClick={() => setUpdatePassword(true)}
+                  >
+                    Change
+                  </Button>
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    <Button size={"sm"} onClick={handlePasswordSave}>
+                      Save
+                    </Button>
+                    <Button
+                      variant={"secondary"}
+                      size={"sm"}
+                      onClick={handlePasswordCancel}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ))}
             </ItemActions>
           </Item>
+
           <Button variant={"secondary"}>
             <LogOut />
             Sign out
           </Button>
+          {error && <span className="text-destructive">{error}</span>}
         </ItemGroup>
       </div>
+
       <div className="flex w-full flex-col items-center gap-1">
         <h1 className="text-3xl font-semibold">Plan</h1>
         <ItemGroup className="w-full">
@@ -78,15 +226,16 @@ function Profile() {
             </ItemMedia>
             <ItemContent>
               <ItemTitle>Membership status</ItemTitle>
-              <ItemDescription>
-                <ul className="list-disc space-y-1 overflow-hidden pl-5">
-                  <li className="list-item">Plan: Free</li>
-                  <li className="list-item">Unlimited Local Scans</li>
-                  <li className="list-item">50 Monthly Cloud Scans</li>
-                </ul>
-              </ItemDescription>
+              <div>
+                <div className="list-disc space-y-1 overflow-hidden pl-5">
+                  <span className="list-item">Plan: Free</span>
+                  <span className="list-item">Unlimited Local Scans</span>
+                  <span className="list-item">50 Monthly Cloud Scans</span>
+                </div>
+              </div>
             </ItemContent>
           </Item>
+
           <Item>
             <ItemMedia variant={"icon"}>
               <ScanEye />
@@ -102,6 +251,7 @@ function Profile() {
               </ItemDescription>
             </ItemContent>
           </Item>
+
           <Button>
             <CircleArrowUp color="white" />
             Upgrade to Pro

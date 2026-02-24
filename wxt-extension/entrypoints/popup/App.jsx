@@ -89,12 +89,12 @@ function App() {
 
   async function getLoginStatus() {
     try {
-      const res = await sendMessage("AUTH_GET_TOKEN", {}, "background");
+      const res = await sendMessage("AUTH_GET_SESSION", {}, "background");
       if (!res?.ok) {
         throw new Error(res?.error);
       }
 
-      if (res?.accessToken) {
+      if (res?.session) {
         setIsLoggedIn(true);
       }
     } catch (error) {
