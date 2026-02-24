@@ -12,6 +12,8 @@ import {
 import zhongLensIcon from "@/assets/icon_zi_full.png";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { sendMessage, onMessage } from "webext-bridge/popup";
 
@@ -131,6 +133,7 @@ function App() {
 
   return (
     <div className="flex w-80 flex-col items-center gap-3 p-4">
+      <Toaster />
       <div className="flex w-full flex-row items-center justify-center gap-5">
         <img src="/icon/128.png" alt="ZhongLens logo" className="w-10" />
         <h1 className="text-2xl">ZhongLens v0</h1>
@@ -150,6 +153,13 @@ function App() {
             className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
             onClick={() => {
               setSettings({ ...settings, crop: !settings.crop });
+              toast.success(
+                `${settings.crop ? "Now using fullscreen mode." : "Now using crop mode."}`,
+                {
+                  position: "top-center",
+                  duration: 1500,
+                },
+              );
             }}
           >
             {settings.crop ? <Crop /> : <Fullscreen />}
@@ -164,6 +174,15 @@ function App() {
                 ...settings,
                 serverProcessingEnabled: !settings.serverProcessingEnabled,
               });
+              settings.serverProcessingEnabled
+                ? toast.error("Cloud OCR is now off.", {
+                    position: "top-center",
+                    duration: 1500,
+                  })
+                : toast.success("Cloud OCR is now active.", {
+                    position: "top-center",
+                    duration: 1500,
+                  });
             }}
           >
             {settings.serverProcessingEnabled ? (
