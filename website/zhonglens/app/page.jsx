@@ -1,4 +1,5 @@
 import Image from "next/image";
+import EmailForm from "../components/EmailForm";
 import { Keyboard, Brain, SquareMousePointer } from "lucide-react";
 
 export default function Home() {
@@ -15,7 +16,7 @@ export default function Home() {
           <span className="text-xl font-bold tracking-tight">ZhongLens</span>
         </div>
 
-        <div className="flex items-center gap-8">
+        <div className="flex items-center md:gap-8 gap-2">
           <a
             className="text-sm font-medium opacity-70 transition-opacity hover:opacity-100"
             href="#how-it-works"
@@ -100,10 +101,11 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-zhonglens-white py-24" id="use-cases">
+      <section className="bg-zhonglens-white py-24 text-center" id="use-cases">
         <div className="mx-auto max-w-6xl px-6">
-          <h2 className="mb-16 text-4xl font-bold">Built for Real Reading</h2>
-
+          <h2 className="mb-8 md:mb-16 text-4xl font-bold">
+            Built for Real Reading
+          </h2>
           <div className="grid gap-8 md:grid-cols-3">
             <div className="rounded-3xl border border-black/5 bg-white p-8">
               <div className="relative mb-6 aspect-[4/3] overflow-hidden rounded-xl bg-gray-100">
@@ -156,36 +158,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section
-        className="mx-auto max-w-4xl px-6 py-32 text-center"
-        id="waitlist"
-      >
-        <h2 className="mb-6 text-4xl font-bold">
-          Be the first to try ZhongLens
-        </h2>
-        <p className="mb-10 text-lg opacity-60">
-          We&#39;re rolling out access to a limited group of beta testers soon.
-        </p>
-
-        <form className="mx-auto mb-6 flex max-w-md flex-col gap-3 sm:flex-row">
-          <input
-            className="flex-1 rounded-xl bg-white px-5 py-4 outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-black/20"
-            placeholder="Enter your email"
-            required
-            type="email"
-          />
-          <button
-            className="cursor-pointer whitespace-nowrap rounded-xl bg-black px-8 py-4 font-bold text-white transition-all hover:opacity-90"
-            type="submit"
-          >
-            Join Waitlist
-          </button>
-        </form>
-
-        <p className="text-xs opacity-40">
-          No spam. We&apos;ll only email you when early access is available.
-        </p>
-      </section>
+      <EmailForm />
     </div>
   );
 }

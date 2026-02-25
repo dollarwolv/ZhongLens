@@ -1,0 +1,81 @@
+"use client";
+
+import { useState } from "react";
+
+function EmailForm() {
+  const [email, setEmail] = useState("");
+  const [successEmail, setSuccessEmail] = useState("");
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    const res = await fetch("/api/waitlist", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+
+    const resJson = await res.json();
+
+    console.log(resJson);
+
+    if (!resJson.ok) {
+      setError(res.error);
+      return;
+    }
+
+    setSuccessEmail(resJson.data[0].email);
+  }
+
+  return (
+    <section
+      className="mx-auto max-w-4xl px-6 md:pt-32 md:pb-[30vh] pt-12 pb-40 text-center"
+      id="waitlist"
+    >
+      <h2 className="mb-6 text-4xl font-bold">Be the first to try ZhongLens</h2>
+      <p className="mb-10 text-lg opacity-60">
+        We&#39;re rolling out access to a limited group of beta testers soon.
+      </p>
+
+      <form
+        className="mx-auto mb-6 flex max-w-md flex-col gap-3 sm:flex-row"
+        onSubmit={(e) => e.preventDefault()}
+      >
+        {successEmail ? (
+          <>
+            <h2 className="text-2xl">Thank you!</h2>
+            <p>
+              Your email {successEmail} was successfully submitted. Once
+              ZhongLens is ready, you will be invited to try it out.
+            </p>
+          </>
+        ) : (
+          <>
+            <input
+              className="flex-1 rounded-xl bg-white px-5 py-4 outline-none ring-1 ring-black/10 focus:ring-2 focus:ring-black/20"
+              placeholder="Enter your email"
+              required
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <button
+              className="cursor-pointer whitespace-nowrap rounded-xl bg-black px-8 py-4 font-bold text-white transition-all hover:opacity-90"
+              type="submit"
+              onClick={(e) => {
+                handleSubmit(e);
+              }}
+            >
+              Join Waitlist
+            </button>
+          </>
+        )}
+      </form>
+
+      <p className="text-xs opacity-40">
+        No spam. We&apos;ll only email you when early access is available.
+      </p>
+    </section>
+  );
+}
+
+export default EmailForm;
