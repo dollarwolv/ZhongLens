@@ -41,13 +41,13 @@ function EmailForm() {
         onSubmit={(e) => e.preventDefault()}
       >
         {successEmail ? (
-          <>
+          <div className="flex flex-col">
             <h2 className="text-2xl">Thank you!</h2>
             <p>
               Your email {successEmail} was successfully submitted. Once
               ZhongLens is ready, you will be invited to try it out.
             </p>
-          </>
+          </div>
         ) : (
           <>
             <input
