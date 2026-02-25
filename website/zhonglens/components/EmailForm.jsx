@@ -1,13 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { SquareLoader } from "react-spinners";
 
 function EmailForm() {
   const [email, setEmail] = useState("");
   const [successEmail, setSuccessEmail] = useState("");
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
+    setLoading(true);
     e.preventDefault();
     const res = await fetch("/api/waitlist", {
       method: "POST",
@@ -23,7 +27,12 @@ function EmailForm() {
       return;
     }
 
+    if (!resJson.sent) {
+      setAlreadyRegistered(true);
+    }
+
     setSuccessEmail(resJson.data[0].email);
+    setLoading(false);
   }
 
   return (
@@ -42,11 +51,23 @@ function EmailForm() {
       >
         {successEmail ? (
           <div className="flex flex-col">
-            <h2 className="text-2xl">Thank you!</h2>
-            <p>
-              Your email {successEmail} was successfully submitted. Once
-              ZhongLens is ready, you will be invited to try it out.
-            </p>
+            {alreadyRegistered ? (
+              <>
+                <h2 className="text-2xl">Already subscribed!</h2>
+                <p>
+                  Your email {successEmail} is already subscribed. Nothing has
+                  changed.
+                </p>
+              </>
+            ) : (
+              <>
+                <h2 className="text-2xl">Thank you!</h2>
+                <p>
+                  Your email {successEmail} was successfully submitted. Once
+                  ZhongLens is ready, you will be invited to try it out.
+                </p>
+              </>
+            )}
           </div>
         ) : (
           <>
@@ -65,12 +86,17 @@ function EmailForm() {
                 handleSubmit(e);
               }}
             >
-              Join Waitlist
+              {loading ? (
+                <SquareLoader color="white" size={12} />
+              ) : (
+                "Join Waitlist"
+              )}
             </button>
           </>
         )}
       </form>
 
+      <span className="text-xs text-red-500">{error}</span>
       <p className="text-xs opacity-40">
         No spam. We&apos;ll only email you when early access is available.
       </p>
