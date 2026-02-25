@@ -77,7 +77,7 @@ export default ({ onClose }) => {
   }, [data]);
 
   return (
-    <div className="font-noto pointer-events-none fixed top-0 left-0 h-screen w-screen">
+    <div className="font-noto pointer-events-none fixed top-0 left-0 z-9999 h-screen w-screen">
       <button
         className="bg-neon-green absolute top-12 right-12 flex h-24 w-24 cursor-pointer items-center justify-center rounded-full"
         onClick={onClose}

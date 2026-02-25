@@ -11,7 +11,6 @@ ocr = PaddleOCR(
     use_doc_unwarping=False,  # Disables text image rectification model via this parameter
     use_textline_orientation=False,  # Disables text line orientation classification model via this parameter
     text_rec_score_thresh=0.9,
-    text_det_box_thresh=0.72,
 )
 
 print("ocr model made.")
