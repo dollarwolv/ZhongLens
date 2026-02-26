@@ -12,7 +12,7 @@ function SignupSuccess() {
             </FieldLabel>
             <FieldDescription>
               You can now close this tab, open the extension and sign in with
-              your new password.
+              your password.
             </FieldDescription>
           </Field>
         </CardContent>
