@@ -57,6 +57,9 @@ export function initAuthHandlers() {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: "https://zhonglens.dev/auth/signup/success",
+        },
       });
       if (error) throw error;
       return { ok: true, user: data.user, session: data.session };
