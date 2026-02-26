@@ -23,7 +23,7 @@ export async function POST(req) {
 
     if (!data[0].unsubscribed_at) {
       const { data: emailData, error: emailError } = await resend.emails.send({
-        from: `Justin from ZhongLens <justin@updates.zhonglens.dev>`,
+        from: `Justin from ZhongLens <updates@zhonglens.dev>`,
         to: [normalizedEmail],
         subject: "Thanks for your interest in ZhongLens!",
         headers: {
