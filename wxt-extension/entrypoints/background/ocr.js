@@ -6,6 +6,22 @@ async function dataUrlToBlob(dataUrl) {
   return await res.blob();
 }
 
+async function downloadDataUrl(dataUrl, filename = "processed.png") {
+  const downloadId = await chrome.downloads.download({
+    url: dataUrl,
+    filename,
+    conflictAction: "uniquify",
+  });
+
+  if (chrome.runtime.lastError) {
+    console.error("Download failed:", chrome.runtime.lastError.message);
+  } else {
+    console.log("Download started, id:", downloadId);
+  }
+
+  return downloadId;
+}
+
 function cropFromCanvas(sourceCanvas, startX, startY, endX, endY) {
   const [width, height] = [endX - startX, endY - startY];
 
@@ -27,6 +43,29 @@ function cropFromCanvas(sourceCanvas, startX, startY, endX, endY) {
   return croppedCanvas;
 }
 
+function grayscaleAndOptionalThreshold(
+  ctx,
+  w,
+  h,
+  { applyThresh = false, thresh = 128 } = {},
+) {
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const data = imgData.data;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+
+    if (applyThresh) {
+      const binary = gray > thresh ? 255 : 0;
+      data[i] = data[i + 1] = data[i + 2] = binary;
+    } else {
+      data[i] = data[i + 1] = data[i + 2] = gray;
+    }
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+}
+
 async function downscaleDataUrlToViewport(
   dataUrl,
   targetW,
@@ -35,6 +74,8 @@ async function downscaleDataUrlToViewport(
     imgFormat = "jpeg",
     downscaleFurther = true,
     convertToGrayscale = true,
+    applyThresh = false,
+    thresh = 128,
     downscaleMaxDim = 800,
     crop = true,
     startX = 0,
@@ -61,31 +102,15 @@ async function downscaleDataUrlToViewport(
     }
   }
 
+  const w = downscaledW ?? targetW;
+  const h = downscaledH ?? targetH;
+
   // create a canvas of smaller size and a context (which is what will be drawn on).
-  let canvas = new OffscreenCanvas(
-    downscaledW ?? targetW,
-    downscaledH ?? targetH,
-  );
-  const ctx = canvas.getContext("2d", { willReadFrequently: false }); // willReadFrequently is a resource-saving measure.
+  let canvas = new OffscreenCanvas(w, h);
+  let ctx = canvas.getContext("2d", { willReadFrequently: false }); // willReadFrequently is a resource-saving measure.
 
   // draw image on the new canvas to downscale
-  ctx.drawImage(bitmap, 0, 0, downscaledW ?? targetW, downscaledH ?? targetH);
-
-  if (convertToGrayscale) {
-    // convert to grayscale for extra good compression
-    const imgData = ctx.getImageData(
-      0,
-      0,
-      downscaledW ?? targetW,
-      downscaledH ?? targetH,
-    );
-    const data = imgData.data;
-    for (let i = 0; i < data.length; i += 4) {
-      const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-      data[i] = data[i + 1] = data[i + 2] = gray;
-    }
-    ctx.putImageData(imgData, 0, 0);
-  }
+  ctx.drawImage(bitmap, 0, 0, w, h);
 
   if (crop) {
     canvas = cropFromCanvas(
@@ -95,6 +120,11 @@ async function downscaleDataUrlToViewport(
       endX * scalingFactor,
       endY * scalingFactor,
     );
+  }
+
+  if (convertToGrayscale || applyThresh) {
+    ctx = canvas.getContext("2d", { willReadFrequently: false });
+    grayscaleAndOptionalThreshold(ctx, w, h, { applyThresh, thresh });
   }
 
   // creates a blob from this downscaled image
@@ -214,12 +244,15 @@ export function initOcrHandlers() {
             downscaleFurther: false,
             convertToGrayscale: false,
             crop: crop,
+            applyThresh: true,
+            thresh: 128,
             startX: crop ? cropXStart : 0,
             startY: crop ? cropYStart : 0,
             endX: crop ? cropXEnd : data.cssW,
             endY: crop ? cropYEnd : data.cssH,
           });
 
+        // await downloadDataUrl(outDataUrl);
         // apparently you cannot communicate with offscreen documents using webext-bridge,
         // so this one uses the regular chrome API
         const res = await new Promise((resolve) => {
