@@ -111,4 +111,14 @@ export function initAuthHandlers() {
       return { ok: false, error: error.message };
     }
   });
+
+  onMessage("AUTH_SIGN_OUT", async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  });
 }

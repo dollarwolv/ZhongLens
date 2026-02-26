@@ -20,10 +20,12 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { sendMessage } from "webext-bridge/popup";
 
 function Profile() {
+  const navigate = useNavigate();
+
   const [scansUsed, setScansUsed] = useState(25);
 
   const [email, setEmail] = useState("");
@@ -209,7 +211,15 @@ function Profile() {
             </ItemActions>
           </Item>
 
-          <Button variant={"secondary"}>
+          <Button
+            variant={"secondary"}
+            onClick={async (e) => {
+              e.preventDefault();
+              const res = await sendMessage("AUTH_SIGN_OUT", {}, "background");
+              if (res.error) setError(res.error);
+              else navigate("/");
+            }}
+          >
             <LogOut />
             Sign out
           </Button>
