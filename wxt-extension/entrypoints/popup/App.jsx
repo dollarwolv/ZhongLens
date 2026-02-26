@@ -197,10 +197,13 @@ function App() {
               </>
             )}
           </button>
-          <button className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow">
+          <Link
+            to={"/settings"}
+            className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
+          >
             <Settings />
             <span className="text-sm">Settings</span>
-          </button>
+          </Link>
 
           {isLoggedIn ? (
             <Link

@@ -46,8 +46,8 @@ function App() {
   }, [hydrated, devSettingsEnabled, serverProcessingEnabled, ocrSpeed, maxDim]);
 
   return (
-    <div className="p-4">
-      <h1 className="text-3xl">Options</h1>
+    <div className="w-100 p-4">
+      <h1 className="mt-4 w-full text-center text-3xl font-bold">Settings</h1>
       <FieldGroup className="mt-8">
         <Field orientation="vertical" className="">
           <div className="flex gap-3">
