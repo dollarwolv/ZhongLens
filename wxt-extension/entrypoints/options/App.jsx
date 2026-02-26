@@ -28,7 +28,7 @@ function App() {
         console.log(items);
         setDevSettingsEnabled(items.devSettingsEnabled ?? false);
         setServerProcessingEnabled(items.serverProcessingEnabled ?? false);
-        setOcrSpeed(items.ocrSpeed ?? [2]);
+        setOcrSpeed([items.ocrSpeed] ?? [2]);
         setMaxDim(items.maxDim ?? 800);
       },
     );
