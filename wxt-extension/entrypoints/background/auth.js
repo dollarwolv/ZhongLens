@@ -94,4 +94,18 @@ export function initAuthHandlers() {
       return { ok: false, error: error.message };
     }
   });
+
+  onMessage("AUTH_RESET_PASSWORD", async ({ data: { email } }) => {
+    try {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: "https://zhonglens.dev/auth/reset-password",
+      });
+      console.log(data, "data");
+      console.log(error, "error");
+      if (error) throw error;
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  });
 }
