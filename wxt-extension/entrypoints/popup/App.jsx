@@ -8,6 +8,7 @@ import {
   CircleArrowUp,
   Fullscreen,
   LogIn,
+  HandFist,
 } from "lucide-react";
 import zhongLensIcon from "@/assets/icon_zi_full.png";
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,14 @@ function App() {
     } catch (err) {
       setError(err.message);
     }
+  }
+
+  async function startStripeSession() {
+    const res = await sendMessage(
+      "STRIPE_START_CHECKOUT_SESSION",
+      {},
+      "background",
+    );
   }
 
   async function getLoginStatus() {
@@ -238,9 +247,15 @@ function App() {
             </Button>
           </div>
         )}
+
         <Button>
-          <CircleArrowUp color="white" />
-          Upgrade to Pro
+          <Link
+            to={"/upgrade"}
+            className="flex flex-row items-center justify-center gap-2"
+          >
+            <CircleArrowUp color="white" />
+            Upgrade to Supporter
+          </Link>
         </Button>
       </div>
       <div className="flex flex-col items-center justify-center gap-0.5">

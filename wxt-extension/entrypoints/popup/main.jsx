@@ -6,6 +6,7 @@ import Signup from "./Signup.jsx";
 import Profile from "./Profile.jsx";
 import ForgotPassword from "./ForgotPassword.jsx";
 import Settings from "./Settings.jsx";
+import Upgrade from "./Upgrade.jsx";
 import { HashRouter, Routes, Route } from "react-router";
 import "~/assets/tailwind.app.css";
 
@@ -19,6 +20,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Route path="/profile" element={<Profile />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/upgrade" element={<Upgrade />} />
       </Routes>
     </HashRouter>
   </React.StrictMode>,
