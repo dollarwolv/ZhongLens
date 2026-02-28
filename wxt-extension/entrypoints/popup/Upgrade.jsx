@@ -6,10 +6,41 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, ArrowLeft, HandFist } from "lucide-react";
+import { Check, ArrowLeft } from "lucide-react";
 import { Link } from "react-router";
 
+import { useState } from "react";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+
 function Upgrade() {
+  const [supporterBilling, setSupporterBilling] = useState("monthly"); // "monthly" | "lifetime"
+  const supporter =
+    supporterBilling === "monthly"
+      ? {
+          price: "$3.99",
+          sub: ["per month", "plus VAT"],
+          desc: "Support ongoing development and unlock unlimited cloud usage and extra customization.",
+          cta: "Start monthly",
+          perks: [
+            "Unlimited Cloud Usage",
+            "Supports the Project",
+            "Dev Settings for full control",
+            "Priority Support",
+          ],
+        }
+      : {
+          price: "$87.99",
+          sub: ["one time", "plus VAT"],
+          desc: "One-time support. Keep premium access and help sustain ZhongLens long-term.",
+          cta: "Get lifetime access",
+          perks: [
+            "Lifetime premium access",
+            "Unlimited Cloud Usage",
+            "Supports the Project",
+            "Dev Settings for full control",
+            "Priority Support",
+          ],
+        };
   return (
     <div className="relative flex w-160 flex-col items-center p-4">
       <Link to={"/"}>
@@ -68,33 +99,40 @@ function Upgrade() {
               Support the cause and get unlimited cloud usage and additional
               customization options.
             </CardDescription>
-            <div className="flex items-end gap-2">
-              <span className="text-5xl font-bold">$3.99</span>
-              <div className="flex flex-col text-sm">
-                <span className="font-bold">per month</span>
-                <span className="font-light">plus VAT</span>
+            <div className="flex flex-col gap-1.5">
+              <ToggleGroup
+                type="single"
+                variant="outline"
+                size="xs"
+                value={supporterBilling}
+                onValueChange={(value) => setSupporterBilling(value)}
+                className="mt-2"
+              >
+                <ToggleGroupItem value="monthly">Monthly</ToggleGroupItem>
+                <ToggleGroupItem value="lifetime">Lifetime</ToggleGroupItem>
+              </ToggleGroup>
+              <div className="flex flex-col gap-1">
+                <div className="flex items-end gap-2">
+                  <span className="text-5xl font-bold">{supporter.price}</span>
+                  <div className="flex flex-col text-sm">
+                    <span className="font-bold">{supporter.sub[0]}</span>
+                    <span className="font-light">{supporter.sub[1]}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
             <Button className="w-full">Get started</Button>
             <ul className="flex flex-col gap-2 text-base">
-              <li className="flex flex-row items-center gap-1">
-                <Check height={16} />
-                Unlimited Cloud Usage
-              </li>
-              <li className="flex flex-row items-center gap-1">
-                <Check height={16} />
-                Supports the Project
-              </li>
-              <li className="flex flex-row items-center gap-1">
-                <Check height={16} />
-                Dev Settings for full control
-              </li>
-              <li className="flex flex-row items-center gap-1">
-                <Check height={16} />
-                Priority Support
-              </li>
+              {supporter.perks.map((item) => {
+                return (
+                  <li className="flex flex-row items-center gap-1">
+                    <Check height={16} />
+                    {item}
+                  </li>
+                );
+              })}
             </ul>
           </CardContent>
         </Card>
