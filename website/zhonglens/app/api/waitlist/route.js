@@ -31,12 +31,12 @@ export async function POST(req) {
         },
         html: `
       <p>
-        Hey there, <br>
-        you've just signed up to receive updates from ZhongLens! Thanks so much for your interest. <br>
-        I'm working hard to get ZhongLens released as soon as possible. Once it's ready, you'll be the first to hear from me! <br>
+        Hey there, <br><br>
+        you've just signed up to receive updates from ZhongLens! Thanks so much for your interest. <br><br>
+        I'm working hard to get ZhongLens released as soon as possible. Once it's ready, you'll be the first to hear from me! <br><br>
         If you have any questions, feel free to contact me at support@zhonglens.dev. <br>
-        If that shouldn't work for some reason, please send me a DM on reddit: u/heyguysitsjustin. <br>
-        You'll hear from me soon!
+        If that shouldn't work for some reason, please send me a DM on reddit: u/heyguysitsjustin. <br><br>
+        You'll hear from me soon!<br><br>
       </p>
 
       <span>If you would like to unsubscribe from this newsletter, click this link: <a href="https://zhonglens.dev/api/unsubscribe?unsubscribe_token=${data[0].unsubscribe_token}">unsubscribe</a></span>`,
