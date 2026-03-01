@@ -1,5 +1,6 @@
 import { Bitter } from "next/font/google";
 import "./globals.css";
+import { Analytics } from "@vercel/analytics/next";
 
 const bitter = Bitter({
   subsets: ["latin"],
@@ -22,7 +23,10 @@ export default function RootLayout({ children }) {
           type="video/mp4"
         />
       </head>
-      <body className={`${bitter.className} antialiased`}>{children}</body>
+      <body className={`${bitter.className} antialiased`}>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
