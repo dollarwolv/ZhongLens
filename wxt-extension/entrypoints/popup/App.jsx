@@ -105,12 +105,12 @@ function App() {
     }
   }
 
-  async function getSubscriptionStatus() {
+  async function getSubscriptionStatus(useCached = true) {
     if (isLoggedIn) {
       try {
         const res = await sendMessage(
           "GET_SUBSCRIPTION_STATUS",
-          {},
+          { useCached },
           "background",
         );
 
