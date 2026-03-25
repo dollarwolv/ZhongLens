@@ -29,4 +29,27 @@ export function initPaymentHandlers() {
       }
     },
   );
+
+  onMessage("GET_SUBSCRIPTION_STATUS", async () => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) throw new Error("user isn't logged in.");
+
+      const userId = sessionData.session?.user?.id;
+      if (!userId) throw new Error("user id not found.");
+
+      const { data } = await supabase
+        .from("stripe_customers")
+        .select()
+        .eq("id", userId)
+        .single();
+
+      if (!data) return { ok: true, userSubscribed: false };
+
+      // this is to be changed: currently only checks if person has ever been subscribed, not unsubscribed
+      if (data.plan === "supporter") return { ok: true, userSubscribed: true };
+    } catch (error) {
+      return { ok: false, error: error.message };
+    }
+  });
 }

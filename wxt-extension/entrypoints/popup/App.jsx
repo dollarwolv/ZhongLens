@@ -16,9 +16,10 @@ import { Switch } from "@/components/ui/switch";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { Field, FieldLabel } from "@/components/ui/field";
-import { sendMessage, onMessage } from "webext-bridge/popup";
+import { sendMessage } from "webext-bridge/popup";
 
 import { Link } from "react-router";
+import { useState } from "react";
 
 function App() {
   const [settings, setSettings] = useState({});
@@ -28,6 +29,7 @@ function App() {
   const [cropDims, setCropDims] = useState({});
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
 
   async function getOverlayState(overlayType) {
     // crop overlay
@@ -88,14 +90,6 @@ function App() {
     }
   }
 
-  async function startStripeSession() {
-    const res = await sendMessage(
-      "STRIPE_START_CHECKOUT_SESSION",
-      {},
-      "background",
-    );
-  }
-
   async function getLoginStatus() {
     try {
       const res = await sendMessage("AUTH_GET_SESSION", {}, "background");
@@ -111,6 +105,26 @@ function App() {
     }
   }
 
+  async function getSubscriptionStatus() {
+    try {
+      const res = await sendMessage(
+        "GET_SUBSCRIPTION_STATUS",
+        {},
+        "background",
+      );
+      console.log(res);
+      if (!res?.ok) {
+        throw new Error(res?.error);
+      }
+
+      if (res.userSubscribed) {
+        setIsSubscribed(true);
+      }
+    } catch (error) {
+      setError(error.message);
+    }
+  }
+
   useEffect(() => {
     (async () => {
       const settingsFromStorage = await chrome.storage.sync.get(null);
@@ -118,6 +132,7 @@ function App() {
       getOverlayState("CROP");
       getOverlayState("OCR");
       getLoginStatus();
+      getSubscriptionStatus();
     })();
 
     // get crop settings to display
@@ -248,20 +263,27 @@ function App() {
           </div>
         )}
 
-        <Button>
-          <Link
-            to={"/upgrade"}
-            className="flex flex-row items-center justify-center gap-2"
-          >
-            <CircleArrowUp color="white" />
-            Upgrade to Supporter
-          </Link>
-        </Button>
+        {!isSubscribed && (
+          <Button>
+            <Link
+              to={"/upgrade"}
+              className="flex flex-row items-center justify-center gap-2"
+            >
+              <CircleArrowUp color="white" />
+              Upgrade to Supporter
+            </Link>
+          </Button>
+        )}
       </div>
       <div className="flex flex-col items-center justify-center gap-0.5">
         <span className="text-center text-xs font-light">
           Found a bug? Thought of a feature? Contact me at dev@zhonglens.dev.
         </span>
+        {error && (
+          <span className="text-center text-xs font-light text-red-500">
+            {error}
+          </span>
+        )}
       </div>
     </div>
   );

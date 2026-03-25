@@ -35,7 +35,6 @@ export function initAuthHandlers() {
   onMessage("AUTH_GET_SESSION", async () => {
     try {
       const { data } = await supabase.auth.getSession();
-      console.log(data);
       if (!data?.session) {
         throw new Error("no session found.");
       }
