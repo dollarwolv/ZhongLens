@@ -11,8 +11,6 @@ export async function POST(req) {
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const supabase = await createClient();
-
-    console.log(req);
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.startsWith("Bearer ")
       ? authHeader.slice("Bearer ".length)
@@ -89,9 +87,6 @@ export async function POST(req) {
 
       automatic_tax: { enabled: true },
     });
-
-    console.log("session");
-    console.log(session);
 
     if (!session) throw new Error("Error during session creation.");
     return NextResponse.json(
