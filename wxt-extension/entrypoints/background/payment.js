@@ -92,4 +92,18 @@ export function initPaymentHandlers() {
       }
     },
   );
+
+  onMessage("OPEN_CUSTOMER_PORTAL", async ({ data: { accessToken } }) => {
+    const res = await fetch(`${YOUR_DOMAIN}/api/stripe/portal`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+    const body = await res.json();
+
+    if (!res.ok || !body?.stripeUrl) return { ok: false, error: body.error };
+
+    return { ok: true, stripeUrl: body.stripeUrl };
+  });
 }

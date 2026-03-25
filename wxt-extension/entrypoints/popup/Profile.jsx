@@ -89,6 +89,23 @@ function Profile() {
     setUpdatePassword(false);
   };
 
+  const handleOpenPortal = async () => {
+    const sessionRes = await sendMessage("AUTH_GET_SESSION", {}, "background");
+    const accessToken = sessionRes?.session?.access_token;
+
+    const res = await sendMessage(
+      "OPEN_CUSTOMER_PORTAL",
+      { accessToken: accessToken },
+      "background",
+    );
+
+    if (!res.ok) {
+      setError(res.error);
+    } else {
+      chrome.tabs.create({ url: res.stripeUrl });
+    }
+  };
+
   useEffect(() => {
     (async () => {
       const res = await sendMessage("AUTH_GET_SESSION", {}, "background");
@@ -265,6 +282,10 @@ function Profile() {
           <Button>
             <CircleArrowUp color="white" />
             Upgrade to Pro
+          </Button>
+          <Button onClick={handleOpenPortal}>
+            <CircleArrowUp color="white" />
+            Edit/cancel subscription
           </Button>
         </ItemGroup>
       </div>
