@@ -106,22 +106,24 @@ function App() {
   }
 
   async function getSubscriptionStatus() {
-    try {
-      const res = await sendMessage(
-        "GET_SUBSCRIPTION_STATUS",
-        {},
-        "background",
-      );
-      console.log(res);
-      if (!res?.ok) {
-        throw new Error(res?.error);
-      }
+    if (isLoggedIn) {
+      try {
+        const res = await sendMessage(
+          "GET_SUBSCRIPTION_STATUS",
+          {},
+          "background",
+        );
 
-      if (res.userSubscribed) {
-        setIsSubscribed(true);
+        if (!res?.ok) {
+          throw new Error(res?.error);
+        }
+
+        if (res.userSubscribed) {
+          setIsSubscribed(true);
+        }
+      } catch (error) {
+        setError(error.message);
       }
-    } catch (error) {
-      setError(error.message);
     }
   }
 
@@ -132,7 +134,6 @@ function App() {
       getOverlayState("CROP");
       getOverlayState("OCR");
       getLoginStatus();
-      getSubscriptionStatus();
     })();
 
     // get crop settings to display
@@ -154,6 +155,14 @@ function App() {
     chrome.storage.sync.set(settings);
     console.log("settings saved");
   }, [settings]);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      getSubscriptionStatus();
+    } else {
+      setIsSubscribed(false);
+    }
+  }, [isLoggedIn]);
 
   return (
     <div className="flex w-80 flex-col items-center gap-3 p-4">

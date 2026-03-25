@@ -40,6 +40,11 @@ export function LoginForm({ className, ...props }) {
       console.log(res?.error);
     } else {
       setErrors([]);
+      await sendMessage(
+        "GET_SUBSCRIPTION_STATUS",
+        { useCached: false },
+        "background",
+      );
       navigate("/");
     }
     setLoading(false);

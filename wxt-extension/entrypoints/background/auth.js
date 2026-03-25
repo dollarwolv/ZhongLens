@@ -36,7 +36,7 @@ export function initAuthHandlers() {
     try {
       const { data } = await supabase.auth.getSession();
       if (!data?.session) {
-        throw new Error("no session found.");
+        return { ok: true };
       }
       return { ok: true, session: data.session };
     } catch (error) {
