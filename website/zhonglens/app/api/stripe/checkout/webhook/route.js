@@ -26,32 +26,58 @@ export async function POST(req) {
   }
 
   try {
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object;
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object;
 
-      const userId = session.metadata?.supabase_user_id;
-      if (!userId) {
-        return new NextResponse("Missing supabase_user_id in metadata", {
-          status: 400,
+        const userId = session.metadata?.supabase_user_id;
+        if (!userId) {
+          return new NextResponse("Missing supabase_user_id in metadata", {
+            status: 400,
+          });
+        }
+
+        const stripeCustomerId =
+          typeof session.customer === "string" ? session.customer : null;
+
+        const stripeSubscriptionId =
+          typeof session.subscription === "string"
+            ? session.subscription
+            : null;
+
+        const { error } = await supabaseAdmin.from("stripe_customers").upsert({
+          id: userId,
+          plan: "supporter",
+          stripe_customer_id: stripeCustomerId,
+          stripe_subscription_id: stripeSubscriptionId,
         });
+
+        if (error) {
+          throw error;
+        }
+
+        break;
       }
+      case "customer.subscription.deleted": {
+        const subscription = event.data.object;
+        const subscriptionId = subscription.id;
 
-      const stripeCustomerId =
-        typeof session.customer === "string" ? session.customer : null;
+        const { error } = await supabaseAdmin
+          .from("stripe_customers")
+          .update({
+            plan: "free",
+            stripe_subscription_id: null,
+          })
+          .eq("stripe_subscription_id", subscriptionId);
 
-      const stripeSubscriptionId =
-        typeof session.subscription === "string" ? session.subscription : null;
+        if (error) {
+          console.error("Failed to process subscription deletion:", error);
+        }
 
-      const { error } = await supabaseAdmin.from("stripe_customers").upsert({
-        id: userId,
-        plan: "supporter",
-        stripe_customer_id: stripeCustomerId,
-        stripe_subscription_id: stripeSubscriptionId,
-      });
-
-      if (error) {
-        throw error;
+        break;
       }
+      default:
+        break;
     }
 
     return NextResponse.json({ received: true }, { status: 200 });
