@@ -57,7 +57,7 @@ function App() {
       if (overlayType === "CROP") setCropOverlayOpen(res.mounted);
       else if (overlayType === "OCR") setOCROverlayOpen(res.mounted);
     } catch (err) {
-      setError(err.message);
+      console.error(err.message);
     }
   }
 
@@ -86,7 +86,7 @@ function App() {
       if (overlayType === "CROP") setCropOverlayOpen(res.mounted);
       if (overlayType === "OCR") setOCROverlayOpen(res.mounted);
     } catch (err) {
-      setError(err.message);
+      console.error(err.message);
     }
   }
 
