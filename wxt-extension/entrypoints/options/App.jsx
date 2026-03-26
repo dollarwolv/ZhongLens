@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import Colorful from "@uiw/react-color-colorful";
 
 import { useEffect, useState, useMemo } from "react";
@@ -165,29 +166,63 @@ function App() {
             <FieldTitle>Trigger OCR</FieldTitle>
             <FieldDescription>
               The shortcut that opens the image recognition overlay and starts
-              recognizing Chinese Characters.
+              recognizing Chinese Characters on the screen.
             </FieldDescription>
-            <div>
-              <p>Is recording: {isRecording ? "yes" : "no"}</p>
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-row items-center gap-1">
+                {isRecording ? (
+                  <>
+                    <span className="text-base">Recorded keys: </span>
+                    {Array.from(keys).map((item, index) => (
+                      <>
+                        <span className="bg-accent rounded px-1.5 py-0.75 text-sm">
+                          {item}
+                        </span>
+                        <span>
+                          {index == Array.from(keys).length - 1 ? "" : " + "}
+                        </span>
+                      </>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    <span className="text-base">Currently: </span>
+                    {settings.openOCRShortcut?.map((item, index) => (
+                      <>
+                        <span className="bg-accent rounded px-1.5 py-0.75 text-sm">
+                          {item}
+                        </span>
+                        <span>
+                          {index == settings.openOCRShortcut.length - 1
+                            ? ""
+                            : " + "}
+                        </span>
+                      </>
+                    ))}
+                  </>
+                )}
+              </div>
               {isRecording ? (
-                <p>Recorded keys: {Array.from(keys).join(" + ")}</p>
+                <Button
+                  size={"sm"}
+                  onClick={() => {
+                    stop();
+                    setSettings({
+                      ...settings,
+                      openOCRShortcut:
+                        Array.from(keys).length > 1
+                          ? Array.from(keys)
+                          : ["ctrl", "o"],
+                    });
+                  }}
+                >
+                  Save
+                </Button>
               ) : (
-                <></>
+                <Button size={"sm"} onClick={start}>
+                  Edit shortcut
+                </Button>
               )}
-
-              <br />
-              <button onClick={start}>Record</button>
-              <button
-                onClick={() => {
-                  stop();
-                  setSettings({
-                    ...settings,
-                    openOCRShortcut: Array.from(keys),
-                  });
-                }}
-              >
-                Stop
-              </button>
             </div>
           </Field>
           <FieldSeparator />
