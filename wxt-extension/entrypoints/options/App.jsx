@@ -115,7 +115,6 @@ function App() {
       </FieldGroup>
       <div>
         <h1 className="mt-8 text-3xl">Appearance</h1>
-
         <FieldGroup className="mt-2">
           <Field>
             <FieldTitle>Overlay Text Color</FieldTitle>
@@ -125,6 +124,25 @@ function App() {
                 setSettings({ ...settings, captionTextColor: color.hex })
               }
             />
+          </Field>
+          <FieldSeparator />
+          <Field orientation="vertical" className="">
+            <div className="flex gap-3">
+              <Switch
+                id="enable-caption-background"
+                checked={settings.captionBgEnabled}
+                onCheckedChange={() =>
+                  setSettings({
+                    ...settings,
+                    captionBgEnabled: !settings.captionBgEnabled,
+                  })
+                }
+                name="enable-caption-background"
+              />
+              <FieldLabel htmlFor="enable-server-processing">
+                Enable Caption Background
+              </FieldLabel>
+            </div>
           </Field>
         </FieldGroup>
       </div>

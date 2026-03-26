@@ -4,6 +4,7 @@ import "~/assets/tailwind.content.css";
 
 function ChildText({ entry, scalingFactor, startX, startY, crop }) {
   const [textColor, setTextColor] = useState("#39ff14");
+  const [bgEnabled, setBgEnabled] = useState(true);
   const text = entry[0];
 
   const [[x1, y1], [x2, y2], [x3, y3], [x4, y4]] = entry[1].map(([x, y]) => [
@@ -35,9 +36,12 @@ function ChildText({ entry, scalingFactor, startX, startY, crop }) {
 
   useEffect(() => {
     (async () => {
-      const captionTextColor =
-        await chrome.storage.sync.get("captionTextColor");
-      setTextColor(captionTextColor.captionTextColor);
+      const settings = await chrome.storage.sync.get([
+        "captionTextColor",
+        "captionBgEnabled",
+      ]);
+      setTextColor(settings.captionTextColor);
+      setBgEnabled(settings.captionBgEnabled);
     })();
   }, []);
 
@@ -50,8 +54,8 @@ function ChildText({ entry, scalingFactor, startX, startY, crop }) {
         left: `${x1 / scalingFactor}px`,
         fontSize: `${fontSize}px`,
         letterSpacing: `${letterSpacing}px`,
-        backgroundColor: "white",
-        WebkitTextStroke: "1px #000000",
+        backgroundColor: bgEnabled ? "white" : "transparent",
+        WebkitTextStroke: "0.5px #000000",
         paddingLeft: "2px",
         color: textColor ?? "#39ff14",
       }}
