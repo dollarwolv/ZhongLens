@@ -106,24 +106,22 @@ function App() {
   }
 
   async function getSubscriptionStatus(useCached = true) {
-    if (isLoggedIn) {
-      try {
-        const res = await sendMessage(
-          "GET_SUBSCRIPTION_STATUS",
-          { useCached },
-          "background",
-        );
+    try {
+      const res = await sendMessage(
+        "GET_SUBSCRIPTION_STATUS",
+        { useCached },
+        "background",
+      );
 
-        if (!res?.ok) {
-          throw new Error(res?.error);
-        }
-
-        if (res.userSubscribed) {
-          setIsSubscribed(true);
-        }
-      } catch (error) {
-        setError(error.message);
+      if (!res?.ok) {
+        throw new Error(res?.error);
       }
+
+      if (res.userSubscribed) {
+        setIsSubscribed(true);
+      }
+    } catch (error) {
+      setError(error.message);
     }
   }
 

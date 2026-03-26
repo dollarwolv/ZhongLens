@@ -18,7 +18,9 @@ import {
   CircleArrowUp,
   LogOut,
   ArrowLeft,
+  CircleX,
 } from "lucide-react";
+import { Spinner } from "../../components/ui/spinner";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { sendMessage } from "webext-bridge/popup";
@@ -38,7 +40,18 @@ function Profile() {
   const [emailConfirmationSent, setEmailConfirmationSent] = useState(false);
   const [passwordUpdated, setPasswordUpdated] = useState(false);
 
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
   const [error, setError] = useState("");
+  const [loadingPortal, setLoadingPortal] = useState(false);
+
+  const supporterText = isSubscribed
+    ? [
+        "Plan: Supporter",
+        "Unlimited Local / Cloud Scans",
+        "Supporting development - thanks! ❤️",
+      ]
+    : ["Plan: Free", "Unlimited Local Scans", "50 Free Cloud Scans per Month"];
 
   const handleEmailSave = async () => {
     if (updatedEmail.trim() !== "") {
@@ -89,7 +102,37 @@ function Profile() {
     setUpdatePassword(false);
   };
 
+  async function getSubscriptionStatus(useCached = false) {
+    try {
+      const res = await sendMessage(
+        "GET_SUBSCRIPTION_STATUS",
+        { useCached },
+        "background",
+      );
+
+      if (!res?.ok) {
+        throw new Error(res?.error);
+      }
+
+      if (res.userSubscribed) {
+        setIsSubscribed(true);
+      }
+    } catch (error) {
+      setError(error.message);
+    }
+  }
+
+  async function getSession() {
+    const res = await sendMessage("AUTH_GET_SESSION", {}, "background");
+    if (!res?.ok) {
+      setError(res.error || "There has been an error fetching your session.");
+    } else {
+      setEmail(res.session.user.email);
+    }
+  }
+
   const handleOpenPortal = async () => {
+    setLoadingPortal(true);
     const sessionRes = await sendMessage("AUTH_GET_SESSION", {}, "background");
     const accessToken = sessionRes?.session?.access_token;
 
@@ -104,17 +147,13 @@ function Profile() {
     } else {
       chrome.tabs.create({ url: res.stripeUrl });
     }
+
+    setLoadingPortal(false);
   };
 
   useEffect(() => {
-    (async () => {
-      const res = await sendMessage("AUTH_GET_SESSION", {}, "background");
-      if (!res?.ok) {
-        setError(res.error || "There has been an error fetching your session.");
-      } else {
-        setEmail(res.session.user.email);
-      }
-    })();
+    getSession();
+    getSubscriptionStatus();
   }, []);
 
   return (
@@ -255,38 +294,49 @@ function Profile() {
               <ItemTitle>Membership status</ItemTitle>
               <div>
                 <div className="list-disc space-y-1 overflow-hidden pl-5">
-                  <span className="list-item">Plan: Free</span>
-                  <span className="list-item">Unlimited Local Scans</span>
-                  <span className="list-item">50 Monthly Cloud Scans</span>
+                  {supporterText.map((text) => {
+                    return <span className="list-item">{text}</span>;
+                  })}
                 </div>
               </div>
             </ItemContent>
           </Item>
 
-          <Item>
-            <ItemMedia variant={"icon"}>
-              <ScanEye />
-            </ItemMedia>
-            <ItemContent>
-              <ItemTitle className="w-full">
-                <span>Free Cloud Scans Left:</span>
-                <span className="ml-auto font-light">{scansUsed}</span>
-              </ItemTitle>
-              <ItemDescription>
-                <Progress value={scansUsed} />
-                <span className="text-[12px]">Resets on June 1st</span>
-              </ItemDescription>
-            </ItemContent>
-          </Item>
+          {!isSubscribed && (
+            <Item>
+              <ItemMedia variant={"icon"}>
+                <ScanEye />
+              </ItemMedia>
+              <ItemContent>
+                <ItemTitle className="w-full">
+                  <span>Free Cloud Scans Left:</span>
+                  <span className="ml-auto font-light">{scansUsed}</span>
+                </ItemTitle>
+                <ItemDescription>
+                  <Progress value={scansUsed} />
+                  <span className="text-[12px]">Resets on June 1st</span>
+                </ItemDescription>
+              </ItemContent>
+            </Item>
+          )}
 
-          <Button>
-            <CircleArrowUp color="white" />
-            Upgrade to Pro
-          </Button>
-          <Button onClick={handleOpenPortal}>
-            <CircleArrowUp color="white" />
-            Edit/cancel subscription
-          </Button>
+          {isSubscribed ? (
+            <Button onClick={handleOpenPortal}>
+              {loadingPortal ? (
+                <Spinner />
+              ) : (
+                <>
+                  <CircleX color="white" />
+                  Edit / Cancel subscription
+                </>
+              )}
+            </Button>
+          ) : (
+            <Button>
+              <CircleArrowUp color="white" />
+              Upgrade to Supporter
+            </Button>
+          )}
         </ItemGroup>
       </div>
     </div>
