@@ -16,34 +16,22 @@ import { useEffect, useState } from "react";
 
 function App() {
   const [hydrated, setHydrated] = useState(false);
-  const [devSettingsEnabled, setDevSettingsEnabled] = useState(false);
-  const [serverProcessingEnabled, setServerProcessingEnabled] = useState(false);
-  const [ocrSpeed, setOcrSpeed] = useState([2]);
-  const [maxDim, setMaxDim] = useState(800);
+  const [settings, setSettings] = useState({});
+
+  async function loadSettings() {
+    const settingsFromStorage = await chrome.storage.sync.get(null);
+    setSettings(settingsFromStorage);
+    setHydrated(true);
+  }
 
   useEffect(() => {
-    chrome.storage.sync.get(
-      ["devSettingsEnabled", "serverProcessingEnabled", "ocrSpeed", "maxDim"],
-      (items) => {
-        console.log(items);
-        setDevSettingsEnabled(items.devSettingsEnabled ?? false);
-        setServerProcessingEnabled(items.serverProcessingEnabled ?? false);
-        setOcrSpeed([items.ocrSpeed] ?? [2]);
-        setMaxDim(items.maxDim ?? 800);
-      },
-    );
-    setHydrated(true);
+    loadSettings();
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
-    chrome.storage.sync.set({
-      devSettingsEnabled: devSettingsEnabled,
-      serverProcessingEnabled: serverProcessingEnabled,
-      ocrSpeed: ocrSpeed,
-      maxDim: maxDim,
-    });
-  }, [hydrated, devSettingsEnabled, serverProcessingEnabled, ocrSpeed, maxDim]);
+    chrome.storage.sync.set(settings);
+  }, [hydrated, settings]);
 
   return (
     <div className="w-100 p-4">
@@ -53,8 +41,13 @@ function App() {
           <div className="flex gap-3">
             <Switch
               id="enable-server-processing"
-              checked={serverProcessingEnabled}
-              onCheckedChange={setServerProcessingEnabled}
+              checked={settings.serverProcessingEnabled}
+              onCheckedChange={() =>
+                setSettings({
+                  ...settings,
+                  serverProcessingEnabled: !settings.serverProcessingEnabled,
+                })
+              }
               name="enable-server-processing"
             />
             <FieldLabel htmlFor="enable-server-processing">
@@ -71,8 +64,13 @@ function App() {
         <Field orientation="horizontal" className="">
           <Checkbox
             id="enable-dev-settings"
-            checked={devSettingsEnabled}
-            onCheckedChange={setDevSettingsEnabled}
+            checked={settings.devSettingsEnabled}
+            onCheckedChange={() =>
+              setSettings({
+                ...settings,
+                devSettingsEnabled: !settings.devSettingsEnabled,
+              })
+            }
             name="enable-dev-settings"
           />
           <FieldLabel htmlFor="enable-dev-settings">
@@ -91,15 +89,20 @@ function App() {
             <span className="text-muted-foreground">More accurate</span>
           </div>
           <Slider
-            value={ocrSpeed}
-            onValueChange={setOcrSpeed}
+            value={settings.ocrSpeed}
+            onValueChange={(value) =>
+              setSettings({
+                ...settings,
+                ocrSpeed: value,
+              })
+            }
             min={1}
             max={5}
             step={1}
           />
         </Field>
       </FieldGroup>
-      {devSettingsEnabled && (
+      {settings.devSettingsEnabled && (
         <div>
           <h1 className="mt-8 text-3xl">Developer settings</h1>
           <FieldGroup className="mt-2">
@@ -116,9 +119,9 @@ function App() {
               <Input
                 type="number"
                 id="max-dimension"
-                value={maxDim}
+                value={settings.maxDim}
                 onChange={(e) => {
-                  setMaxDim(e.target.value);
+                  setSettings({ ...settings, maxDim: e.target.value });
                 }}
               />
               <span className="text-muted-foreground">
