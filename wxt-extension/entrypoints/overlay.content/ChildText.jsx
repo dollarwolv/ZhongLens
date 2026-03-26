@@ -35,12 +35,15 @@ function ChildText({ entry, scalingFactor, startX, startY, crop }) {
   return (
     <span
       ref={spanRef}
-      className="text-neon-green pointer-events-auto absolute whitespace-pre"
+      className="text-neon-green inline-blockwhitespace-pre pointer-events-auto absolute"
       style={{
         top: `${y1 / scalingFactor}px`,
         left: `${x1 / scalingFactor}px`,
         fontSize: `${fontSize}px`,
         letterSpacing: `${letterSpacing}px`,
+        backgroundColor: "white",
+        WebkitTextStroke: "1px #000000",
+        paddingLeft: "2px",
       }}
     >
       {text}
