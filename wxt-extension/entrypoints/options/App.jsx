@@ -15,25 +15,38 @@ import Colorful from "@uiw/react-color-colorful";
 
 import { useEffect, useState, useMemo } from "react";
 
+import { useRecordHotkeys } from "react-hotkeys-hook";
+
 function App() {
   const [hydrated, setHydrated] = useState(false);
   const [settings, setSettings] = useState({});
+
+  const [keys, { start, stop, isRecording }] = useRecordHotkeys();
 
   async function loadSettings() {
     const settingsFromStorage = await chrome.storage.sync.get(null);
     setSettings(settingsFromStorage);
     setHydrated(true);
+    console.log("first settings:");
+    console.log(settings);
   }
 
   useEffect(() => {
     loadSettings();
   }, []);
 
+  // remove again later:
+  useEffect(() => {
+    console.log(keys);
+  }, [keys]);
+
   useEffect(() => {
     if (!hydrated) return;
     const timeout = setTimeout(() => {
       chrome.storage.sync.set(settings);
     }, 500);
+    console.log("saveed settings: ");
+    console.log(settings);
 
     return () => clearTimeout(timeout);
   }, [hydrated, settings]);
@@ -104,7 +117,6 @@ function App() {
                 ...settings,
                 ocrSpeed: value[0],
               });
-              console.log(settings);
             }}
             min={1}
             max={5}
@@ -144,6 +156,41 @@ function App() {
               </FieldLabel>
             </div>
           </Field>
+        </FieldGroup>
+      </div>
+      <div>
+        <h1 className="mt-8 text-3xl">Keyboard Shortcuts</h1>
+        <FieldGroup className="mt-2">
+          <Field>
+            <FieldTitle>Trigger OCR</FieldTitle>
+            <FieldDescription>
+              The shortcut that opens the image recognition overlay and starts
+              recognizing Chinese Characters.
+            </FieldDescription>
+            <div>
+              <p>Is recording: {isRecording ? "yes" : "no"}</p>
+              {isRecording ? (
+                <p>Recorded keys: {Array.from(keys).join(" + ")}</p>
+              ) : (
+                <></>
+              )}
+
+              <br />
+              <button onClick={start}>Record</button>
+              <button
+                onClick={() => {
+                  stop();
+                  setSettings({
+                    ...settings,
+                    openOCRShortcut: Array.from(keys),
+                  });
+                }}
+              >
+                Stop
+              </button>
+            </div>
+          </Field>
+          <FieldSeparator />
         </FieldGroup>
       </div>
       {settings.devSettingsEnabled && (

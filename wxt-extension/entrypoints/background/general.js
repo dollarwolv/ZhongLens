@@ -12,6 +12,10 @@ export function initGeneralHandlers() {
       maxDim: 800,
       captionBgEnabled: true,
       captionTextColor: "#39ff14",
+      openOCRShortcut: ["ctrl", "o"],
+      closeOCRShortcut: ["ctrl", "l"],
+      openCropShortcut: ["ctrl", "u"],
+      closeCropShortcut: ["ctrl", "i"],
     };
 
     chrome.storage.sync.set(defaultSettings);
