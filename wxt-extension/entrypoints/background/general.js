@@ -10,6 +10,8 @@ export function initGeneralHandlers() {
       devSettingsEnabled: false,
       ocrSpeed: 2,
       maxDim: 800,
+      captionBgEnabled: true,
+      captionTextColor: "#39ff14",
     };
 
     chrome.storage.sync.set(defaultSettings);

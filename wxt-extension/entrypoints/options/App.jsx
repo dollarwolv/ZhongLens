@@ -11,8 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import Colorful from "@uiw/react-color-colorful";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 function App() {
   const [hydrated, setHydrated] = useState(false);
@@ -30,13 +31,18 @@ function App() {
 
   useEffect(() => {
     if (!hydrated) return;
-    chrome.storage.sync.set(settings);
+    const timeout = setTimeout(() => {
+      chrome.storage.sync.set(settings);
+    }, 500);
+
+    return () => clearTimeout(timeout);
   }, [hydrated, settings]);
 
   return (
     <div className="w-100 p-4">
       <h1 className="mt-4 w-full text-center text-3xl font-bold">Settings</h1>
       <FieldGroup className="mt-8">
+        {/* server processing */}
         <Field orientation="vertical" className="">
           <div className="flex gap-3">
             <Switch
@@ -61,6 +67,7 @@ function App() {
           </FieldDescription>
         </Field>
         <FieldSeparator />
+        {/* dev settings enabled */}
         <Field orientation="horizontal" className="">
           <Checkbox
             id="enable-dev-settings"
@@ -78,6 +85,7 @@ function App() {
           </FieldLabel>
         </Field>
         <FieldSeparator />
+        {/* OCR speed/accuracy tradeoff */}
         <Field>
           <FieldTitle>OCR Speed/Accuracy</FieldTitle>
           <FieldDescription>
@@ -89,23 +97,42 @@ function App() {
             <span className="text-muted-foreground">More accurate</span>
           </div>
           <Slider
-            value={settings.ocrSpeed}
-            onValueChange={(value) =>
+            // needs to be an array otherwise will crash
+            value={[settings.ocrSpeed]}
+            onValueChange={(value) => {
               setSettings({
                 ...settings,
-                ocrSpeed: value,
-              })
-            }
+                ocrSpeed: value[0],
+              });
+              console.log(settings);
+            }}
             min={1}
             max={5}
             step={1}
           />
         </Field>
+        <FieldSeparator />
       </FieldGroup>
+      <div>
+        <h1 className="mt-8 text-3xl">Appearance</h1>
+
+        <FieldGroup className="mt-2">
+          <Field>
+            <FieldTitle>Overlay Text Color</FieldTitle>
+            <Colorful
+              color={settings.captionTextColor}
+              onChange={(color) =>
+                setSettings({ ...settings, captionTextColor: color.hex })
+              }
+            />
+          </Field>
+        </FieldGroup>
+      </div>
       {settings.devSettingsEnabled && (
         <div>
           <h1 className="mt-8 text-3xl">Developer settings</h1>
           <FieldGroup className="mt-2">
+            {/* max image dims */}
             <Field>
               <FieldLabel htmlFor="max-dimension">
                 Maximum image dimension
