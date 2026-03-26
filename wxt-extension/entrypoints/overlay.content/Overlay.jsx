@@ -31,9 +31,8 @@ export default ({ onClose }) => {
         return [text, resultData.rec_polys[index]];
       });
     } else if (mode === "local_ocr") {
-      console.log(resultData);
       data = resultData
-        .filter((item) => item.confidence > 0.9)
+        .filter((item) => item.confidence > 50)
         .map((item, index) => {
           const bbox = item.bbox;
           const fullBoundingBox = [
@@ -42,7 +41,15 @@ export default ({ onClose }) => {
             [bbox.x1, bbox.y1],
             [bbox.x0, bbox.y1],
           ];
-          return [item.text, fullBoundingBox];
+          let filteredText = "";
+          for (const word of item.words) {
+            if (word.confidence > 60) {
+              filteredText += word.text;
+            } else {
+              filteredText += " ";
+            }
+          }
+          return [filteredText, fullBoundingBox];
         });
     }
 
