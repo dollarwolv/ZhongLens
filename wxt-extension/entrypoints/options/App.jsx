@@ -18,11 +18,21 @@ import { useEffect, useState, useMemo } from "react";
 
 import { useRecordHotkeys } from "react-hotkeys-hook";
 
+import ShortcutRecorder from "./ShortcutRecorder";
+
 function App() {
   const [hydrated, setHydrated] = useState(false);
   const [settings, setSettings] = useState({});
 
   const [keys, { start, stop, isRecording }] = useRecordHotkeys();
+
+  const triggerOcrInfo = {
+    title: "Trigger OCR",
+    description:
+      "The shortcut that opens the image recognition overlay and starts recognizing Chinese Characters on the screen.",
+    settingsVarName: "openOCRShortcut",
+    standardKeyCombination: ["ctrl", "o"],
+  };
 
   async function loadSettings() {
     const settingsFromStorage = await chrome.storage.sync.get(null);
@@ -162,69 +172,11 @@ function App() {
       <div>
         <h1 className="mt-8 text-3xl">Keyboard Shortcuts</h1>
         <FieldGroup className="mt-2">
-          <Field>
-            <FieldTitle>Trigger OCR</FieldTitle>
-            <FieldDescription>
-              The shortcut that opens the image recognition overlay and starts
-              recognizing Chinese Characters on the screen.
-            </FieldDescription>
-            <div className="flex flex-col gap-2">
-              <div className="flex flex-row items-center gap-1">
-                {isRecording ? (
-                  <>
-                    <span className="text-base">Recorded keys: </span>
-                    {Array.from(keys).map((item, index) => (
-                      <>
-                        <span className="bg-accent rounded px-1.5 py-0.75 text-sm">
-                          {item}
-                        </span>
-                        <span>
-                          {index == Array.from(keys).length - 1 ? "" : " + "}
-                        </span>
-                      </>
-                    ))}
-                  </>
-                ) : (
-                  <>
-                    <span className="text-base">Currently: </span>
-                    {settings.openOCRShortcut?.map((item, index) => (
-                      <>
-                        <span className="bg-accent rounded px-1.5 py-0.75 text-sm">
-                          {item}
-                        </span>
-                        <span>
-                          {index == settings.openOCRShortcut.length - 1
-                            ? ""
-                            : " + "}
-                        </span>
-                      </>
-                    ))}
-                  </>
-                )}
-              </div>
-              {isRecording ? (
-                <Button
-                  size={"sm"}
-                  onClick={() => {
-                    stop();
-                    setSettings({
-                      ...settings,
-                      openOCRShortcut:
-                        Array.from(keys).length > 1
-                          ? Array.from(keys)
-                          : ["ctrl", "o"],
-                    });
-                  }}
-                >
-                  Save
-                </Button>
-              ) : (
-                <Button size={"sm"} onClick={start}>
-                  Edit shortcut
-                </Button>
-              )}
-            </div>
-          </Field>
+          <ShortcutRecorder
+            settings={settings}
+            setSettings={setSettings}
+            info={triggerOcrInfo}
+          />
           <FieldSeparator />
         </FieldGroup>
       </div>
