@@ -18,7 +18,7 @@ function ShortcutRecorder({ settings, setSettings, info }) {
       <Field>
         <FieldTitle>{info.title}</FieldTitle>
         <FieldDescription>{info.description}</FieldDescription>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2.5">
           <div className="flex flex-row items-center gap-1">
             {isRecording ? (
               <>
@@ -53,23 +53,28 @@ function ShortcutRecorder({ settings, setSettings, info }) {
             )}
           </div>
           {isRecording ? (
-            <Button
-              size={"sm"}
-              onClick={() => {
-                stop();
-                setSettings({
-                  ...settings,
-                  [info.settingsVarName]:
-                    Array.from(keys).length > 1
-                      ? Array.from(keys)
-                      : info.standardKeyCombination,
-                });
-              }}
-            >
-              Save
-            </Button>
+            <div className="flex flex-row gap-2">
+              <Button
+                size={"sm"}
+                onClick={() => {
+                  stop();
+                  setSettings({
+                    ...settings,
+                    [info.settingsVarName]:
+                      Array.from(keys).length > 1
+                        ? Array.from(keys)
+                        : info.standardKeyCombination,
+                  });
+                }}
+              >
+                Save
+              </Button>
+              <Button size={"sm"} variant={"secondary"} onClick={stop}>
+                Cancel
+              </Button>
+            </div>
           ) : (
-            <Button size={"sm"} onClick={start}>
+            <Button size={"sm"} onClick={start} className="w-fit">
               Edit shortcut
             </Button>
           )}
