@@ -122,9 +122,15 @@ async function downscaleDataUrlToViewport(
     );
   }
 
+  const processedW = canvas.width;
+  const processedH = canvas.height;
+
   if (convertToGrayscale || applyThresh) {
     ctx = canvas.getContext("2d", { willReadFrequently: false });
-    grayscaleAndOptionalThreshold(ctx, w, h, { applyThresh, thresh });
+    grayscaleAndOptionalThreshold(ctx, processedW, processedH, {
+      applyThresh,
+      thresh,
+    });
   }
 
   // creates a blob from this downscaled image
