@@ -16,6 +16,11 @@ import { Switch } from "@/components/ui/switch";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { Field, FieldLabel } from "@/components/ui/field";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { sendMessage } from "webext-bridge/popup";
 
 import { Link } from "react-router";
@@ -180,54 +185,71 @@ function App() {
       </button>
       <div className="flex flex-col gap-2">
         <div className="flex flex-row gap-2.5">
-          <button
-            className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
-            onClick={() => {
-              setSettings({ ...settings, crop: !settings.crop });
-              toast.success(
-                `${settings.crop ? "Now using fullscreen mode." : "Now using crop mode."}`,
-                {
-                  position: "top-center",
-                  duration: 1500,
-                },
-              );
-            }}
-          >
-            {settings.crop ? <Crop /> : <Fullscreen />}
-            <span className="text-sm">
-              {settings.crop ? "Crop" : "Fullscreen"}
-            </span>
-          </button>
-          <button
-            className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
-            onClick={() => {
-              setSettings({
-                ...settings,
-                serverProcessingEnabled: !settings.serverProcessingEnabled,
-              });
-              settings.serverProcessingEnabled
-                ? toast.error("Cloud OCR is now off.", {
-                    position: "top-center",
-                    duration: 1500,
-                  })
-                : toast.success("Cloud OCR is now active.", {
-                    position: "top-center",
-                    duration: 1500,
+          <Tooltip>
+            <TooltipTrigger>
+              <button
+                className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
+                onClick={() => {
+                  setSettings({ ...settings, crop: !settings.crop });
+                  toast.success(
+                    `${settings.crop ? "Now using fullscreen mode." : "Now using crop mode."}`,
+                    {
+                      position: "top-center",
+                      duration: 1500,
+                    },
+                  );
+                }}
+              >
+                {settings.crop ? <Crop /> : <Fullscreen />}
+                <span className="text-sm">
+                  {settings.crop ? "Crop" : "Fullscreen"}
+                </span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="flex flex-col items-center">
+              <p>Crop to text location for</p>
+              <p>better speed and accuracy.</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger>
+              <button
+                className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
+                onClick={() => {
+                  setSettings({
+                    ...settings,
+                    serverProcessingEnabled: !settings.serverProcessingEnabled,
                   });
-            }}
-          >
-            {settings.serverProcessingEnabled ? (
-              <>
-                <Cloud />
-                <span className="text-sm">Cloud</span>
-              </>
-            ) : (
-              <>
-                <CloudOff />
-                <span className="text-sm">Local</span>
-              </>
-            )}
-          </button>
+                  settings.serverProcessingEnabled
+                    ? toast.error("Cloud OCR is now off.", {
+                        position: "top-center",
+                        duration: 1500,
+                      })
+                    : toast.success("Cloud OCR is now active.", {
+                        position: "top-center",
+                        duration: 1500,
+                      });
+                }}
+              >
+                {settings.serverProcessingEnabled ? (
+                  <>
+                    <Cloud />
+                    <span className="text-sm">Cloud</span>
+                  </>
+                ) : (
+                  <>
+                    <CloudOff />
+                    <span className="text-sm">Local</span>
+                  </>
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="flex flex-col items-center">
+              <p>Local: fast, less accurate</p>
+              <p>Cloud: slower, more accurate</p>
+              <p>21 free cloud scans remaining</p>
+            </TooltipContent>
+          </Tooltip>
           <Link
             to={"/settings"}
             className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
