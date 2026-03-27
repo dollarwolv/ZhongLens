@@ -34,6 +34,29 @@ function App() {
     standardKeyCombination: ["ctrl", "o"],
   };
 
+  const closeOcrInfo = {
+    title: "Close OCR",
+    description: "The shortcut that closes the image recognition overlay.",
+    settingsVarName: "closeOCRShortcut",
+    standardKeyCombination: ["ctrl", "l"],
+  };
+
+  const triggerCropInfo = {
+    title: "Trigger Crop Overlay",
+    description:
+      "The shortcut that triggers the overlay to adjust the cropping region.",
+    settingsVarName: "openCropShortcut",
+    standardKeyCombination: ["ctrl", "u"],
+  };
+
+  const closeCropInfo = {
+    title: "Close Crop Overlay",
+    description:
+      "The shortcut that closes the overlay to adjust the cropping region.",
+    settingsVarName: "closeCropShortcut",
+    standardKeyCombination: ["ctrl", "i"],
+  };
+
   async function loadSettings() {
     const settingsFromStorage = await chrome.storage.sync.get(null);
     setSettings(settingsFromStorage);
@@ -45,11 +68,6 @@ function App() {
   useEffect(() => {
     loadSettings();
   }, []);
-
-  // remove again later:
-  useEffect(() => {
-    console.log(keys);
-  }, [keys]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -137,7 +155,7 @@ function App() {
         <FieldSeparator />
       </FieldGroup>
       <div>
-        <h1 className="mt-8 text-3xl">Appearance</h1>
+        <h1 className="mt-8 mb-4 text-3xl">Appearance</h1>
         <FieldGroup className="mt-2">
           <Field>
             <FieldTitle>Overlay Text Color</FieldTitle>
@@ -167,15 +185,34 @@ function App() {
               </FieldLabel>
             </div>
           </Field>
+          <FieldSeparator />
         </FieldGroup>
       </div>
       <div>
-        <h1 className="mt-8 text-3xl">Keyboard Shortcuts</h1>
+        <h1 className="mt-8 mb-4 text-3xl">Keyboard Shortcuts</h1>
         <FieldGroup className="mt-2">
           <ShortcutRecorder
             settings={settings}
             setSettings={setSettings}
             info={triggerOcrInfo}
+          />
+          <FieldSeparator />
+          <ShortcutRecorder
+            settings={settings}
+            setSettings={setSettings}
+            info={closeOcrInfo}
+          />
+          <FieldSeparator />
+          <ShortcutRecorder
+            settings={settings}
+            setSettings={setSettings}
+            info={triggerCropInfo}
+          />
+          <FieldSeparator />
+          <ShortcutRecorder
+            settings={settings}
+            setSettings={setSettings}
+            info={closeCropInfo}
           />
           <FieldSeparator />
         </FieldGroup>
