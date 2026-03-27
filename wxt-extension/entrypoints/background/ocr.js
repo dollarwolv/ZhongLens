@@ -197,10 +197,13 @@ export function initOcrHandlers() {
         const form = new FormData();
         form.append("raw_img", outBlob, "frame.jpeg");
 
-        const res = await fetch("http://127.0.0.1:8000/ocr", {
-          method: "POST",
-          body: form,
-        });
+        const res = await fetch(
+          "https://backend-1059246355615.us-central1.run.app/ocr",
+          {
+            method: "POST",
+            body: form,
+          },
+        );
 
         if (!res.ok) throw new Error(await res.text());
         const result = await res.json();
