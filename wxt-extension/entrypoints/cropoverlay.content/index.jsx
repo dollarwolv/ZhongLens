@@ -1,7 +1,7 @@
 import ReactDOM from "react-dom/client";
 import CropOverlay from "./CropOverlay";
 import "~/assets/tailwind.app.css";
-import { onMessage } from "webext-bridge/content-script";
+import { registerOverlayShortcuts } from "../../lib/shortcuts";
 
 export default defineContentScript({
   matches: ["<all_urls>"],
@@ -30,20 +30,19 @@ export default defineContentScript({
       },
     });
 
-    function onKeyDown(e) {
-      if (e.ctrlKey && e.key.toLowerCase() === "u") {
-        e.preventDefault();
-        if (!ui.mounted) {
-          ui.mount();
-        }
-      }
-      if (e.ctrlKey && e.key.toLowerCase() === "i") {
-        e.preventDefault();
+    await registerOverlayShortcuts({
+      openSettingKey: "openCropShortcut",
+      closeSettingKey: "closeCropShortcut",
+      openFallback: ["ctrl", "u"],
+      closeFallback: ["ctrl", "i"],
+      onOpen: () => {
+        if (!ui.mounted) ui.mount();
+      },
+      onClose: () => {
         ui.remove();
-      }
-    }
-
-    console.log("registering hndlasders");
+      },
+      ctx,
+    });
 
     chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       if (msg?.type === "TOGGLE_CROP_OVERLAY") {
