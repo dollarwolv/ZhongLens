@@ -9,14 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 
 import { Check, ArrowLeft } from "lucide-react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 import { useEffect, useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { sendMessage } from "webext-bridge/popup";
 import { getCopywritingSection } from "@/lib/copywriting";
+import { toast } from "sonner";
 
 function Upgrade() {
+  const navigate = useNavigate();
   const [supporterBilling, setSupporterBilling] = useState("monthly"); // "monthly" | "lifetime"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -48,29 +50,55 @@ function Upgrade() {
   async function initiateCheckout() {
     if (!supporter) return;
 
+    setError("");
     setLoading(true);
-    // get access token from background
-    const sessionRes = await sendMessage("AUTH_GET_SESSION", {}, "background");
-    const accessToken = sessionRes?.session?.access_token;
-
-    // start stripe checkout session
-    const res = await sendMessage(
-      "STRIPE_START_CHECKOUT_SESSION",
-      { type: supporterBilling, accessToken: accessToken },
-      "background",
-    );
-
-    // error if not ok
-    if (!res?.ok) {
-      setError(
-        res?.error ||
-          "There was an error creating your checkout session. Please try again later.",
+    try {
+      // get access token from background
+      const sessionRes = await sendMessage(
+        "AUTH_GET_SESSION",
+        {},
+        "background",
       );
-    } else {
-      // if res ok, create new tab
-      chrome.tabs.create({ url: res.stripeUrl });
+
+      if (!sessionRes?.ok) {
+        setError(
+          sessionRes?.error ||
+            "There was an error checking your account. Please try again later.",
+        );
+        return;
+      }
+
+      const accessToken = sessionRes?.session?.access_token;
+
+      if (!accessToken) {
+        toast.error("You need to be logged in to upgrade.", {
+          position: "top-center",
+          duration: 1500,
+        });
+        navigate("/login");
+        return;
+      }
+
+      // start stripe checkout session
+      const res = await sendMessage(
+        "STRIPE_START_CHECKOUT_SESSION",
+        { type: supporterBilling, accessToken: accessToken },
+        "background",
+      );
+
+      // error if not ok
+      if (!res?.ok) {
+        setError(
+          res?.error ||
+            "There was an error creating your checkout session. Please try again later.",
+        );
+      } else {
+        // if res ok, create new tab
+        chrome.tabs.create({ url: res.stripeUrl });
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
   return (
     <div className="relative flex w-160 flex-col items-center p-4">

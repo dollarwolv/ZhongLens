@@ -12,10 +12,12 @@ import { HashRouter, Routes, Route } from "react-router";
 import "~/assets/tailwind.app.css";
 
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/sonner";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <TooltipProvider delayDuration={500}>
+      <Toaster />
       <HashRouter>
         <Routes>
           <Route path="/" element={<App />} />

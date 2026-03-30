@@ -14,7 +14,6 @@ import {
 import zhongLensIcon from "@/assets/icon_zi_full.png";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { Field, FieldLabel } from "@/components/ui/field";
 import {
@@ -170,7 +169,6 @@ function App() {
 
   return (
     <div className="relative flex w-80 flex-col items-center gap-3 p-4">
-      <Toaster />
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
