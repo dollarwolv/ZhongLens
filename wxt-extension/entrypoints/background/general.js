@@ -21,4 +21,16 @@ export function initGeneralHandlers() {
     chrome.storage.sync.set(defaultSettings);
     console.log("Service worker installed");
   });
+
+  chrome.runtime.onInstalled.addListener(async ({ reason }) => {
+    if (reason !== "install") return;
+
+    await chrome.storage.sync.set({
+      hasCompletedOnboarding: false,
+    });
+
+    await chrome.tabs.create({
+      url: chrome.runtime.getURL("/onboarding.html"),
+    });
+  });
 }

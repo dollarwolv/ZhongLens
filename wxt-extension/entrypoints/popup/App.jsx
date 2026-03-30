@@ -184,6 +184,18 @@ function App() {
         </span>
       </button>
       <div className="flex flex-col gap-2">
+        {!settings?.hasCompletedOnboarding && (
+          <button
+            className="text-muted-foreground hover:text-foreground text-xs underline transition-colors"
+            onClick={() =>
+              chrome.tabs.create({
+                url: chrome.runtime.getURL("/onboarding.html"),
+              })
+            }
+          >
+            New here? Learn how to use ZhongLens
+          </button>
+        )}
         <div className="flex flex-row gap-2.5">
           <Tooltip>
             <TooltipTrigger>
