@@ -86,36 +86,42 @@ export default ({ onClose }) => {
   return (
     <div className="font-noto pointer-events-none fixed top-0 left-0 z-9999 h-screen w-screen">
       <button
-        className="bg-neon-green absolute top-12 right-12 flex h-24 w-24 cursor-pointer items-center justify-center rounded-full"
+        type="button"
+        aria-label="Close overlay"
+        className="hover:border-neon-green/70 hover:text-neon-green focus-visible:ring-neon-green/70 pointer-events-auto absolute top-6 right-6 flex h-20 w-20 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/70 text-white shadow-lg shadow-black/30 backdrop-blur-sm transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 focus-visible:outline-none"
         onClick={onClose}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
           <path
             d="M18 6L6 18M6 6l12 12"
             fill="none"
             stroke="currentColor"
-            strokeWidth="2"
+            strokeWidth="2.5"
             strokeLinecap="round"
           />
         </svg>
       </button>
       {loading && (
         <div className="text-neon-green absolute top-[50%] left-[50%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center">
-          <div className="animate-spin">
-            <svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true">
-              <circle
-                cx="12"
-                cy="12"
-                r="9"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-dasharray="14 10"
-              />
-            </svg>
-          </div>
-          <span>Analyzing...</span>`
+          <svg
+            width="40"
+            height="40"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            className="block animate-spin"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="9"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeDasharray="14 10"
+            />
+          </svg>
+          <span className="mt-1">Analyzing...</span>
         </div>
       )}
       {error && (
