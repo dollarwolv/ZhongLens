@@ -1,5 +1,7 @@
 import { onMessage } from "webext-bridge/background";
 
+const SERVER_OCR_URL = import.meta.env.VITE_SERVER_OCR_URL;
+
 // helpers
 async function dataUrlToBlob(dataUrl) {
   const res = await fetch(dataUrl);
@@ -189,6 +191,13 @@ export function initOcrHandlers() {
       ]);
 
       if (serverProcessingEnabled) {
+        if (!SERVER_OCR_URL) {
+          console.error("SERVER_OCR_URL is undefined in background/ocr.js");
+          throw new Error("SERVER_OCR_URL is undefined");
+        }
+
+        console.log("Server OCR URL:", SERVER_OCR_URL);
+
         // downscale URL to CSS Viewport size
         const { outBlob, outDataUrl, scalingFactor } =
           await downscaleDataUrlToViewport(dataUrl, data.cssW, data.cssH, {
@@ -203,15 +212,21 @@ export function initOcrHandlers() {
         const form = new FormData();
         form.append("raw_img", outBlob, "frame.jpeg");
 
-        const res = await fetch(
-          "https://backend-1059246355615.us-central1.run.app/ocr/",
-          {
-            method: "POST",
-            body: form,
-          },
-        );
+        const res = await fetch(SERVER_OCR_URL, {
+          method: "POST",
+          body: form,
+        });
 
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error("Server OCR request failed:", {
+            url: SERVER_OCR_URL,
+            status: res.status,
+            statusText: res.statusText,
+            errorText,
+          });
+          throw new Error(errorText);
+        }
         const result = await res.json();
 
         return {
@@ -271,6 +286,7 @@ export function initOcrHandlers() {
         };
       }
     } catch (err) {
+      console.error("CAPTURE_TAB failed:", err);
       return { ok: false, error: String(err) };
     }
   });
