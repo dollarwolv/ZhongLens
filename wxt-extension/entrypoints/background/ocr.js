@@ -204,7 +204,7 @@ export function initOcrHandlers() {
         form.append("raw_img", outBlob, "frame.jpeg");
 
         const res = await fetch(
-          "https://backend-1059246355615.us-central1.run.app/ocr",
+          "https://backend-1059246355615.us-central1.run.app/ocr/",
           {
             method: "POST",
             body: form,

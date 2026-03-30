@@ -1,19 +1,23 @@
 from paddleocr import PaddleOCR
 from dotenv import load_dotenv
-import pprint
+import os
 
 load_dotenv()
 
 ocr = PaddleOCR(
     text_detection_model_name="PP-OCRv5_mobile_det",
+    text_detection_model_dir=os.getenv("DET_MODEL_DIR", "./models/PP-OCRv5_mobile_det"),
     text_recognition_model_name="PP-OCRv5_mobile_rec",
+    text_recognition_model_dir=os.getenv(
+        "REC_MODEL_DIR", "./models/PP-OCRv5_mobile_rec"
+    ),
     use_doc_orientation_classify=False,
     use_doc_unwarping=False,
     use_textline_orientation=False,
     text_rec_score_thresh=0.9,
 )
 
-print("ocr model made.")
+print("ocr model made.", flush=True)
 
 
 def recognize(img):
