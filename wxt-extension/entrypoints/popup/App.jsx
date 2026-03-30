@@ -9,6 +9,7 @@ import {
   Fullscreen,
   LogIn,
   HandFist,
+  CircleHelp,
 } from "lucide-react";
 import zhongLensIcon from "@/assets/icon_zi_full.png";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ import {
 import { sendMessage } from "webext-bridge/popup";
 
 import { Link } from "react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 function App() {
   const [settings, setSettings] = useState({});
@@ -168,8 +169,25 @@ function App() {
   }, [isLoggedIn]);
 
   return (
-    <div className="flex w-80 flex-col items-center gap-3 p-4">
+    <div className="relative flex w-80 flex-col items-center gap-3 p-4">
       <Toaster />
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            asChild
+            variant="outline"
+            size="icon-sm"
+            className="absolute top-4 right-4 rounded-full"
+          >
+            <Link to="/faq" aria-label="Open FAQ">
+              <CircleHelp />
+            </Link>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>How to use ZhongLens</p>
+        </TooltipContent>
+      </Tooltip>
       <div className="flex w-full flex-row items-center justify-center gap-5">
         <img src="/icon/128.png" alt="ZhongLens logo" className="w-10" />
         <h1 className="text-2xl">ZhongLens v0</h1>
