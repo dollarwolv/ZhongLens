@@ -24,6 +24,7 @@ import { Spinner } from "../../components/ui/spinner";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { sendMessage } from "webext-bridge/popup";
+import { getCopywritingSection } from "@/lib/copywriting";
 
 function Profile() {
   const navigate = useNavigate();
@@ -41,17 +42,13 @@ function Profile() {
   const [passwordUpdated, setPasswordUpdated] = useState(false);
 
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [membershipStatus, setMembershipStatus] = useState(null);
+  const [copyError, setCopyError] = useState("");
 
   const [error, setError] = useState("");
   const [loadingPortal, setLoadingPortal] = useState(false);
-
-  const supporterText = isSubscribed
-    ? [
-        "Plan: Supporter",
-        "Unlimited Local / Cloud Scans",
-        "Supporting development - thanks! ❤️",
-      ]
-    : ["Plan: Free", "Unlimited Local Scans", "50 Free Cloud Scans per Month"];
+  const supporterText =
+    membershipStatus?.[isSubscribed ? "supporter" : "free"] || [];
 
   const handleEmailSave = async () => {
     if (updatedEmail.trim() !== "") {
@@ -154,6 +151,25 @@ function Profile() {
   useEffect(() => {
     getSession();
     getSubscriptionStatus();
+
+    let mounted = true;
+
+    async function loadProfileCopy() {
+      try {
+        const content = await getCopywritingSection("profile");
+        if (!mounted) return;
+        setMembershipStatus(content?.membershipStatus || null);
+      } catch (err) {
+        if (!mounted) return;
+        setCopyError(err.message);
+      }
+    }
+
+    loadProfileCopy();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return (
@@ -295,9 +311,18 @@ function Profile() {
               <div>
                 <div className="list-disc space-y-1 overflow-hidden pl-5">
                   {supporterText.map((text) => {
-                    return <span className="list-item">{text}</span>;
+                    return (
+                      <span className="list-item" key={text}>
+                        {text}
+                      </span>
+                    );
                   })}
                 </div>
+                {copyError && (
+                  <div className="text-destructive mt-2 text-sm">
+                    {copyError}
+                  </div>
+                )}
               </div>
             </ItemContent>
           </Item>

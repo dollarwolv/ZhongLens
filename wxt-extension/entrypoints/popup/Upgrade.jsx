@@ -11,43 +11,43 @@ import { Spinner } from "@/components/ui/spinner";
 import { Check, ArrowLeft } from "lucide-react";
 import { Link } from "react-router";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { sendMessage } from "webext-bridge/popup";
+import { getCopywritingSection } from "@/lib/copywriting";
 
 function Upgrade() {
   const [supporterBilling, setSupporterBilling] = useState("monthly"); // "monthly" | "lifetime"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const supporter =
-    supporterBilling === "monthly"
-      ? {
-          price: "$2.99",
-          sub: ["per month", "plus VAT"],
-          desc: "Support ongoing development and unlock unlimited cloud usage and extra customization.",
-          cta: "Start monthly",
-          perks: [
-            "Unlimited Cloud Usage",
-            "Supports the Project",
-            "Dev Settings for full control",
-            "Priority Support",
-          ],
-        }
-      : {
-          price: "$27.99",
-          sub: ["one time", "plus VAT"],
-          desc: "One-time support. Keep premium access and help sustain ZhongLens long-term.",
-          cta: "Get lifetime access",
-          perks: [
-            "Lifetime premium access",
-            "Unlimited Cloud Usage",
-            "Supports the Project",
-            "Dev Settings for full control",
-            "Priority Support",
-          ],
-        };
+  const [supporterPlans, setSupporterPlans] = useState(null);
+  const [copyError, setCopyError] = useState("");
+  const supporter = supporterPlans?.[supporterBilling];
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadUpgradeCopy() {
+      try {
+        const content = await getCopywritingSection("upgrade");
+        if (!mounted) return;
+        setSupporterPlans(content?.supporterPlans || null);
+      } catch (err) {
+        if (!mounted) return;
+        setCopyError(err.message);
+      }
+    }
+
+    loadUpgradeCopy();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   async function initiateCheckout() {
+    if (!supporter) return;
+
     setLoading(true);
     // get access token from background
     const sessionRes = await sendMessage("AUTH_GET_SESSION", {}, "background");
@@ -141,31 +141,37 @@ function Upgrade() {
           <Card className="w-70 gap-2">
             <CardHeader>
               <CardTitle className="text-xl">ZhongLens Supporter</CardTitle>
-              <CardDescription>
-                Support the cause and get unlimited cloud usage and additional
-                customization options.
-              </CardDescription>
+              <CardDescription>{supporter?.desc || ""}</CardDescription>
               <div className="flex flex-col gap-1.5">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-end gap-2">
                     <span className="text-5xl font-bold">
-                      {supporter.price}
+                      {supporter?.price || ""}
                     </span>
                     <div className="flex flex-col text-sm">
-                      <span className="font-bold">{supporter.sub[0]}</span>
-                      <span className="font-light">{supporter.sub[1]}</span>
+                      <span className="font-bold">
+                        {supporter?.sub?.[0] || ""}
+                      </span>
+                      <span className="font-light">
+                        {supporter?.sub?.[1] || ""}
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <Button className="w-full" onClick={initiateCheckout}>
-                {loading ? <Spinner /> : "Get started"}
+              <Button
+                className="w-full"
+                onClick={initiateCheckout}
+                disabled={!supporter}
+              >
+                {loading ? <Spinner /> : supporter?.cta || "Loading..."}
               </Button>
               {error && <span className="text-red-500">{error}</span>}
+              {copyError && <span className="text-red-500">{copyError}</span>}
               <ul className="flex flex-col gap-2 text-base">
-                {supporter.perks.map((item) => {
+                {(supporter?.perks || []).map((item) => {
                   return (
                     <li className="flex flex-row items-center gap-1" key={item}>
                       <Check height={16} />
