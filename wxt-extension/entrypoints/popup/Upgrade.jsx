@@ -22,9 +22,42 @@ function Upgrade() {
   const [supporterBilling, setSupporterBilling] = useState("monthly"); // "monthly" | "lifetime"
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const [supporterPlans, setSupporterPlans] = useState(null);
   const [copyError, setCopyError] = useState("");
   const supporter = supporterPlans?.[supporterBilling];
+
+  async function getLoginStatus() {
+    try {
+      const res = await sendMessage("AUTH_GET_SESSION", {}, "background");
+      if (!res?.ok) {
+        throw new Error(res?.error);
+      }
+
+      setIsLoggedIn(Boolean(res?.session));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function getSubscriptionStatus(useCached = true) {
+    try {
+      const res = await sendMessage(
+        "GET_SUBSCRIPTION_STATUS",
+        { useCached },
+        "background",
+      );
+
+      if (!res?.ok) {
+        throw new Error(res?.error);
+      }
+
+      setIsSubscribed(Boolean(res.userSubscribed));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
   useEffect(() => {
     let mounted = true;
@@ -40,12 +73,21 @@ function Upgrade() {
       }
     }
 
+    getLoginStatus();
     loadUpgradeCopy();
 
     return () => {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      getSubscriptionStatus();
+    } else {
+      setIsSubscribed(false);
+    }
+  }, [isLoggedIn]);
 
   async function initiateCheckout() {
     if (!supporter) return;
@@ -148,7 +190,7 @@ function Upgrade() {
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <Button variant={"secondary"} className="w-full">
-                Current plan
+                {isSubscribed ? "Free plan" : "Current plan"}
               </Button>
               <ul className="flex flex-col gap-2 text-base">
                 <li className="flex flex-row items-center gap-1">
@@ -191,10 +233,17 @@ function Upgrade() {
             <CardContent className="flex flex-col gap-4">
               <Button
                 className="w-full"
-                onClick={initiateCheckout}
-                disabled={!supporter}
+                variant={isSubscribed ? "secondary" : "default"}
+                onClick={isSubscribed ? undefined : initiateCheckout}
+                disabled={!supporter || isSubscribed}
               >
-                {loading ? <Spinner /> : supporter?.cta || "Loading..."}
+                {isSubscribed ? (
+                  "Current plan"
+                ) : loading ? (
+                  <Spinner />
+                ) : (
+                  supporter?.cta || "Loading..."
+                )}
               </Button>
               {error && <span className="text-red-500">{error}</span>}
               {copyError && <span className="text-red-500">{copyError}</span>}
