@@ -24,12 +24,17 @@ import { Spinner } from "../../components/ui/spinner";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { sendMessage } from "webext-bridge/popup";
+import {
+  CLOUD_OCR_FREE_LIMIT,
+  getCloudOcrUsagePercent,
+  getRemainingCloudOcrUses,
+} from "@/lib/cloudOcr";
 import { getCopywritingSection } from "@/lib/copywriting";
 
 function Profile() {
   const navigate = useNavigate();
 
-  const [scansUsed, setScansUsed] = useState(25);
+  const [cloudOcrFreeUseCount, setCloudOcrFreeUseCount] = useState(0);
 
   const [email, setEmail] = useState("");
   const [updateEmail, setUpdateEmail] = useState(false);
@@ -152,6 +157,12 @@ function Profile() {
     getSession();
     getSubscriptionStatus();
 
+    chrome.storage.sync
+      .get("cloudOcrFreeUseCount")
+      .then((result) =>
+        setCloudOcrFreeUseCount(Number(result.cloudOcrFreeUseCount) || 0),
+      );
+
     let mounted = true;
 
     async function loadProfileCopy() {
@@ -167,10 +178,22 @@ function Profile() {
 
     loadProfileCopy();
 
+    const handleStorageChange = (changes, areaName) => {
+      if (areaName !== "sync" || !changes.cloudOcrFreeUseCount) return;
+
+      setCloudOcrFreeUseCount(Number(changes.cloudOcrFreeUseCount.newValue) || 0);
+    };
+
+    chrome.storage.onChanged.addListener(handleStorageChange);
+
     return () => {
       mounted = false;
+      chrome.storage.onChanged.removeListener(handleStorageChange);
     };
   }, []);
+
+  const cloudOcrRemainingCount = getRemainingCloudOcrUses(cloudOcrFreeUseCount);
+  const cloudOcrUsagePercent = getCloudOcrUsagePercent(cloudOcrFreeUseCount);
 
   return (
     <div className="relative flex w-100 flex-col items-center gap-10 p-4">
@@ -334,12 +357,17 @@ function Profile() {
               </ItemMedia>
               <ItemContent>
                 <ItemTitle className="w-full">
-                  <span>Free Cloud Scans Left:</span>
-                  <span className="ml-auto font-light">{scansUsed}</span>
+                  <span>Free Cloud OCR</span>
+                  <span className="ml-auto font-light">
+                    {cloudOcrRemainingCount} / {CLOUD_OCR_FREE_LIMIT} left
+                  </span>
                 </ItemTitle>
                 <ItemDescription>
-                  <Progress value={scansUsed} />
-                  <span className="text-[12px]">Resets on June 1st</span>
+                  <Progress value={cloudOcrUsagePercent} />
+                  <span className="text-[12px]">
+                    {cloudOcrFreeUseCount} used so far, {cloudOcrRemainingCount}{" "}
+                    remaining before upgrade is required.
+                  </span>
                 </ItemDescription>
               </ItemContent>
             </Item>

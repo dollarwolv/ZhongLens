@@ -1,19 +1,28 @@
-async function ensureInstallTrackingState() {
+import { syncCloudOcrFreeUseCount } from "./cloudOcrUsage";
+
+async function ensureInstallTrackingState({ syncUsage = false } = {}) {
   const syncStorage = await chrome.storage.sync.get([
     "anonInstallId",
     "cloudOcrFreeUseCount",
   ]);
+  let shouldSyncUsage = syncUsage;
 
   if (!syncStorage["anonInstallId"]) {
     await chrome.storage.sync.set({
       ["anonInstallId"]: crypto.randomUUID(),
     });
+    shouldSyncUsage = true;
   }
 
   if (typeof syncStorage["cloudOcrFreeUseCount"] !== "number") {
     await chrome.storage.sync.set({
       ["cloudOcrFreeUseCount"]: 0,
     });
+    shouldSyncUsage = true;
+  }
+
+  if (shouldSyncUsage) {
+    await syncCloudOcrFreeUseCount();
   }
 }
 
@@ -45,7 +54,7 @@ export function initGeneralHandlers() {
 
   // listener for install tracking state
   chrome.runtime.onInstalled.addListener(async () => {
-    await ensureInstallTrackingState();
+    await ensureInstallTrackingState({ syncUsage: true });
   });
 
   chrome.runtime.onInstalled.addListener(async ({ reason }) => {

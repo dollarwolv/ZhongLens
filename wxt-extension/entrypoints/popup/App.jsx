@@ -21,6 +21,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { CLOUD_OCR_FREE_LIMIT, getRemainingCloudOcrUses } from "@/lib/cloudOcr";
 import { sendMessage } from "webext-bridge/popup";
 
 import { Link } from "react-router";
@@ -32,6 +33,7 @@ function App() {
   const [cropOverlayOpen, setCropOverlayOpen] = useState(false);
   const [OCROverlayOpen, setOCROverlayOpen] = useState(false);
   const [cropDims, setCropDims] = useState({});
+  const [cloudOcrFreeUseCount, setCloudOcrFreeUseCount] = useState(0);
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -134,6 +136,9 @@ function App() {
     (async () => {
       const settingsFromStorage = await chrome.storage.sync.get(null);
       setSettings(settingsFromStorage);
+      setCloudOcrFreeUseCount(
+        Number(settingsFromStorage.cloudOcrFreeUseCount) || 0,
+      );
       getOverlayState("CROP");
       getOverlayState("OCR");
       getLoginStatus();
@@ -154,6 +159,22 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const handleStorageChange = (changes, areaName) => {
+      if (areaName !== "sync" || !changes.cloudOcrFreeUseCount) return;
+
+      setCloudOcrFreeUseCount(
+        Number(changes.cloudOcrFreeUseCount.newValue) || 0,
+      );
+    };
+
+    chrome.storage.onChanged.addListener(handleStorageChange);
+
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange);
+    };
+  }, []);
+
+  useEffect(() => {
     console.log(settings);
     chrome.storage.sync.set(settings);
     console.log("settings saved");
@@ -166,6 +187,8 @@ function App() {
       setIsSubscribed(false);
     }
   }, [isLoggedIn]);
+
+  const cloudOcrRemainingCount = getRemainingCloudOcrUses(cloudOcrFreeUseCount);
 
   return (
     <div className="relative flex w-80 flex-col items-center gap-3 p-4">
@@ -240,9 +263,9 @@ function App() {
             </TooltipContent>
           </Tooltip>
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger asChild>
               <button
-                className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
+                className="relative flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
                 onClick={() => {
                   setSettings({
                     ...settings,
@@ -259,6 +282,11 @@ function App() {
                       });
                 }}
               >
+                {!isSubscribed && settings.serverProcessingEnabled && (
+                  <span className="pointer-events-none absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-black px-1 text-[10px] font-semibold text-white shadow">
+                    {cloudOcrRemainingCount}
+                  </span>
+                )}
                 {settings.serverProcessingEnabled ? (
                   <>
                     <Cloud />
@@ -275,7 +303,13 @@ function App() {
             <TooltipContent className="flex flex-col items-center">
               <p>Local: fast, less accurate</p>
               <p>Cloud: slower, more accurate</p>
-              <p>21 free cloud scans remaining</p>
+              {isSubscribed ? (
+                <p>Supporter: unlimited cloud OCR scans</p>
+              ) : (
+                <>
+                  <p>{cloudOcrRemainingCount} free cloud scans remaining</p>
+                </>
+              )}
             </TooltipContent>
           </Tooltip>
           <Link

@@ -11,7 +11,7 @@ from supabase.client import ClientOptions
 load_dotenv()
 SUPABASE_URL: str = os.environ["SUPABASE_URL"]
 SUPABASE_SERVICE_ROLE_KEY: str = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-MAX_FREE_REQUESTS: str = os.environ["MAX_FREE_REQUESTS"]
+MAX_FREE_REQUESTS = int(os.environ["MAX_FREE_REQUESTS"])
 
 app = FastAPI()
 supabase = create_client(
@@ -23,9 +23,41 @@ supabase = create_client(
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
+def get_cloud_request_count(anon_install_id: str) -> int:
+    check_usage_response = (
+        supabase.table("browser_id_cloud_requests")
+        .select("request_count")
+        .eq("anon_install_id", anon_install_id)
+        .execute()
+    )
+
+    rows = check_usage_response.data or []
+    first_row = rows[0] if rows else None
+
+    if not isinstance(first_row, dict):
+        return 0
+
+    raw_request_count = first_row.get("request_count", 0)
+
+    if isinstance(raw_request_count, (int, float, str)):
+        return int(raw_request_count)
+
+    return 0
+
+
 @app.get("/health")
 async def health():
     return {"ok": True}
+
+
+@app.post("/ocr/usage/")
+async def get_ocr_usage(anon_install_id: str = Form(...)):
+    current_request_count = get_cloud_request_count(anon_install_id)
+    return {
+        "request_count": current_request_count,
+        "max_free_requests": MAX_FREE_REQUESTS,
+        "remaining_requests": max(MAX_FREE_REQUESTS - current_request_count, 0),
+    }
 
 
 @app.post("/ocr/")
@@ -66,34 +98,9 @@ async def receive_ocr(
                     is_supporter = True
 
     if not is_supporter:
-        # check usage response in supabase
-        check_usage_response = (
-            supabase.table("browser_id_cloud_requests")
-            .select("request_count")
-            .eq("anon_install_id", anon_install_id)
-            .execute()
-        )
+        current_request_count = get_cloud_request_count(anon_install_id)
 
-        # cast as empty List if there is no data or check data
-        rows = check_usage_response.data or []
-        first_row = rows[0] if rows else None
-
-        # if the first row is not a dict (-> it is empty)...
-        if not isinstance(first_row, dict):
-            current_request_count = 0
-
-        # all this monkey business is just to satisfy the type checking, don't worry about it
-        else:
-            raw_request_count = first_row.get("request_count", 0)
-
-            # check if the request count is castable to int, otherwise it will just be set to 0, because it might be JSON and
-            # then the type checker will cry
-            if isinstance(raw_request_count, (int, float, str)):
-                current_request_count = int(raw_request_count)
-            else:
-                current_request_count = 0
-
-        if current_request_count >= int(MAX_FREE_REQUESTS):
+        if current_request_count >= MAX_FREE_REQUESTS:
             raise HTTPException(
                 status_code=403,
                 detail="Free Cloud OCR limit reached. Become a ZhongLens supporter to get unlimited Cloud OCR.",

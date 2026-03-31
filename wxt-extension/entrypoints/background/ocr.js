@@ -1,32 +1,14 @@
 import { onMessage } from "webext-bridge/background";
 import { getSubscriptionStatus } from "./payment";
 import { supabase } from "./supabase";
+import { CLOUD_OCR_FREE_LIMIT } from "../../lib/cloudOcr";
+import {
+  getAnonInstallId,
+  getCloudOcrFreeUseCount,
+  setCloudOcrFreeUseCount,
+} from "./cloudOcrUsage";
 
 const SERVER_OCR_URL = import.meta.env.VITE_SERVER_OCR_URL;
-const CLOUD_OCR_FREE_LIMIT = 50;
-
-async function getCloudOcrFreeUseCount() {
-  const result = await chrome.storage.sync.get("cloudOcrFreeUseCount");
-  return Number(result["cloudOcrFreeUseCount"]) || 0;
-}
-
-async function setCloudOcrFreeUseCount(count) {
-  await chrome.storage.sync.set({
-    ["cloudOcrFreeUseCount"]: count,
-  });
-}
-
-async function getAnonInstallId() {
-  const result = await chrome.storage.sync.get("anonInstallId");
-  let anonInstallId = result.anonInstallId;
-
-  if (!anonInstallId) {
-    anonInstallId = crypto.randomUUID();
-    await chrome.storage.sync.set({ anonInstallId });
-  }
-
-  return anonInstallId;
-}
 
 // helpers
 async function dataUrlToBlob(dataUrl) {
