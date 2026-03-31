@@ -1,6 +1,19 @@
 import { onMessage } from "webext-bridge/background";
+import { getSubscriptionStatus } from "./payment";
 
 const SERVER_OCR_URL = import.meta.env.VITE_SERVER_OCR_URL;
+const CLOUD_OCR_FREE_LIMIT = 1;
+
+async function getCloudOcrFreeUseCount() {
+  const result = await chrome.storage.sync.get("cloudOcrFreeUseCount");
+  return Number(result["cloudOcrFreeUseCount"]) || 0;
+}
+
+async function setCloudOcrFreeUseCount(count) {
+  await chrome.storage.sync.set({
+    ["cloudOcrFreeUseCount"]: count,
+  });
+}
 
 // helpers
 async function dataUrlToBlob(dataUrl) {
@@ -191,12 +204,28 @@ export function initOcrHandlers() {
       ]);
 
       if (serverProcessingEnabled) {
+        // test that checks if env variable has been found
         if (!SERVER_OCR_URL) {
           console.error("SERVER_OCR_URL is undefined in background/ocr.js");
           throw new Error("SERVER_OCR_URL is undefined");
         }
-
         console.log("Server OCR URL:", SERVER_OCR_URL);
+
+        // get subscription status to check if user is eligible
+        const subscriptionStatus = await getSubscriptionStatus({
+          useCached: true,
+        });
+        const isSupporter =
+          subscriptionStatus?.ok && subscriptionStatus?.userSubscribed;
+        const cloudOcrFreeUseCount = await getCloudOcrFreeUseCount();
+
+        if (!isSupporter && cloudOcrFreeUseCount >= CLOUD_OCR_FREE_LIMIT) {
+          return {
+            ok: false,
+            error:
+              "Free Cloud OCR limit reached. Upgrade to Supporter to continue using Cloud OCR.",
+          };
+        }
 
         // downscale URL to CSS Viewport size
         const { outBlob, outDataUrl, scalingFactor } =
@@ -228,6 +257,10 @@ export function initOcrHandlers() {
           throw new Error(errorText);
         }
         const result = await res.json();
+
+        if (!isSupporter) {
+          await setCloudOcrFreeUseCount(cloudOcrFreeUseCount + 1);
+        }
 
         return {
           ok: true,

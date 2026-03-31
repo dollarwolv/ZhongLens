@@ -3,6 +3,78 @@ import { supabase } from "./supabase";
 
 const YOUR_DOMAIN = "http://127.0.0.1:3000";
 
+async function getCachedSubscriptionStatus() {
+  const result = await chrome.storage.local.get("subscriptionStatus");
+  return result["subscriptionStatus"] ?? null;
+}
+
+async function setCachedSubscriptionStatus(value) {
+  await chrome.storage.local.set({
+    ["subscriptionStatus"]: {
+      ...value,
+      checkedAt: Date.now(),
+    },
+  });
+}
+
+function isFresh(cache) {
+  const SUBSCRIPTION_TTL_MS = 15 * 60 * 1000;
+  return cache && Date.now() - cache.checkedAt < SUBSCRIPTION_TTL_MS;
+}
+
+export async function getSubscriptionStatus({ useCached = true } = {}) {
+  try {
+    if (useCached) {
+      const cached = await getCachedSubscriptionStatus();
+
+      if (isFresh(cached)) {
+        return {
+          ok: true,
+          userSubscribed: cached.userSubscribed,
+          cached: true,
+        };
+      }
+    }
+
+    // if it's not fresh or cached is not supposed to be used
+    const { data: sessionData } = await supabase.auth.getSession();
+
+    // if no session is found, that means user is not logged in, and also obviously not subscribed
+    if (!sessionData.session) {
+      await setCachedSubscriptionStatus({ userSubscribed: false });
+      return { ok: true, userSubscribed: false };
+    }
+
+    const userId = sessionData.session?.user?.id;
+
+    // if there is no user id, then user is also not logged in and not subscribed either
+    if (!userId) {
+      await setCachedSubscriptionStatus({ userSubscribed: false });
+      return { ok: true, userSubscribed: false };
+    }
+
+    // check subscription status in supabase
+    const { data, error } = await supabase
+      .from("stripe_customers")
+      .select()
+      .eq("id", userId)
+      .single();
+
+    if (error && error.code !== "PGRST116") {
+      throw error;
+    }
+
+    // set userSubscribed true if data.plan has supporter, else false
+    const userSubscribed = data?.plan === "supporter";
+
+    await setCachedSubscriptionStatus({ userSubscribed });
+
+    return { ok: true, userSubscribed };
+  } catch (error) {
+    return { ok: false, error: error.message };
+  }
+}
+
 export function initPaymentHandlers() {
   onMessage(
     "STRIPE_START_CHECKOUT_SESSION",
@@ -32,65 +104,9 @@ export function initPaymentHandlers() {
 
   onMessage(
     "GET_SUBSCRIPTION_STATUS",
-    async ({ data: { useCached = true } }) => {
-      async function getCachedSubscriptionStatus() {
-        const result = await chrome.storage.local.get("subscriptionStatus");
-        return result["subscriptionStatus"] ?? null;
-      }
-
-      async function setCachedSubscriptionStatus(value) {
-        await chrome.storage.local.set({
-          ["subscriptionStatus"]: {
-            ...value,
-            checkedAt: Date.now(),
-          },
-        });
-      }
-
-      function isFresh(cache) {
-        const SUBSCRIPTION_TTL_MS = 15 * 60 * 1000;
-        return cache && Date.now() - cache.checkedAt < SUBSCRIPTION_TTL_MS;
-      }
-
-      try {
-        if (useCached) {
-          const cached = await getCachedSubscriptionStatus();
-
-          if (isFresh(cached)) {
-            return {
-              ok: true,
-              userSubscribed: cached.userSubscribed,
-              cached: true,
-            };
-          }
-        }
-
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (!sessionData.session) throw new Error("user isn't logged in.");
-
-        const userId = sessionData.session?.user?.id;
-        if (!userId) throw new Error("user id not found.");
-
-        const { data } = await supabase
-          .from("stripe_customers")
-          .select()
-          .eq("id", userId)
-          .single();
-
-        if (!data) {
-          await setCachedSubscriptionStatus({ userSubscribed: false });
-          return { ok: true, userSubscribed: false };
-        }
-
-        // this is to be changed: currently only checks if person has ever been subscribed, not unsubscribed
-        if (data.plan === "supporter") {
-          await setCachedSubscriptionStatus({ userSubscribed: true });
-          return { ok: true, userSubscribed: true };
-        }
-      } catch (error) {
-        return { ok: false, error: error.message };
-      }
-    },
+    // arrow function without {}, meaning implicit return, so doesn't require return statement
+    async ({ data: { useCached = true } }) =>
+      await getSubscriptionStatus({ useCached }),
   );
 
   onMessage("OPEN_CUSTOMER_PORTAL", async ({ data: { accessToken } }) => {

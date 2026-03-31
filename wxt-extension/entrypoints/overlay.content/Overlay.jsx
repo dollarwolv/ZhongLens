@@ -20,6 +20,7 @@ export default ({ onClose }) => {
     if (!res.ok) {
       setError(res?.error);
       setLoading(false);
+      return;
     }
     const resultData = res?.result;
     const mode = res?.mode;
