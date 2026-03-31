@@ -40,11 +40,15 @@ async def receive_ocr(
     current_request_count = 0
 
     if jwt:
-        print("jwt received: ", jwt)
         user_response = supabase.auth.get_user(jwt)
 
         if user_response:
             user_id = user_response.user.id
+
+            supabase.table("browser_id_cloud_requests").upsert(
+                {"anon_install_id": anon_install_id, "linked_user_id": user_id}
+            ).execute()
+
             supporter_status_response = (
                 supabase.table("stripe_customers")
                 .select("plan")

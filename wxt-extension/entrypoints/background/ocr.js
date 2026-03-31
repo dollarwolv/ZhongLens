@@ -260,9 +260,6 @@ export function initOcrHandlers() {
         const { data: sessionData, error: sessionError } =
           await supabase.auth.getSession();
 
-        console.log("session DATA:", sessionData);
-        console.log("session ERROR:", sessionError);
-
         if (sessionError) {
           throw new Error(sessionError.message || "couldn't get session...");
         }
