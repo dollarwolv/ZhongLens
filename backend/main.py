@@ -9,9 +9,18 @@ from supabase import create_client
 from supabase.client import ClientOptions
 
 load_dotenv()
-SUPABASE_URL: str = os.environ["SUPABASE_URL"]
-SUPABASE_SERVICE_ROLE_KEY: str = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-MAX_FREE_REQUESTS = int(os.environ["MAX_FREE_REQUESTS"])
+
+
+def require_env(name: str) -> str:
+    value = os.getenv(name)
+    if value:
+        return value
+    raise RuntimeError(f"Missing required environment variable: {name}")
+
+
+SUPABASE_URL: str = require_env("SUPABASE_URL")
+SUPABASE_SERVICE_ROLE_KEY: str = require_env("SUPABASE_SERVICE_ROLE_KEY")
+MAX_FREE_REQUESTS = int(os.getenv("MAX_FREE_REQUESTS", "50"))
 
 app = FastAPI()
 supabase = create_client(
