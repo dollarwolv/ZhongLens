@@ -4,7 +4,7 @@ import { createClient } from "@/utils/supabase/server";
 
 const priceMap = {
   monthly: "price_1T5KcKEI5TwrmxmbiObj3Fne",
-  lifetime: "price_1T5iJvEI5TwrmxmbkuMtUNxU",
+  lifetime: "price_1TGtOFEI5TwrmxmbotOuUgN8",
 };
 
 export async function POST(req) {
@@ -47,6 +47,8 @@ export async function POST(req) {
     const session = await stripe.checkout.sessions.create({
       mode,
       line_items: [{ price, quantity: 1 }],
+
+      allow_promotion_codes: true,
 
       // If you want Stripe to create a Customer in payment mode too:
       customer_creation: mode === "payment" ? "always" : undefined,

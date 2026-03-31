@@ -1,4 +1,25 @@
+async function ensureInstallTrackingState() {
+  const syncStorage = await chrome.storage.sync.get([
+    "anonInstallId",
+    "cloudOcrFreeUseCount",
+  ]);
+
+  if (!syncStorage["anonInstallId"]) {
+    await chrome.storage.sync.set({
+      ["anonInstallId"]: crypto.randomUUID(),
+    });
+  }
+
+  if (typeof syncStorage["cloudOcrFreeUseCount"] !== "number") {
+    await chrome.storage.sync.set({
+      ["cloudOcrFreeUseCount"]: 0,
+    });
+  }
+}
+
 export function initGeneralHandlers() {
+  void ensureInstallTrackingState();
+
   chrome.runtime.onInstalled.addListener(() => {
     const defaultSettings = {
       crop: false,
@@ -20,6 +41,11 @@ export function initGeneralHandlers() {
 
     chrome.storage.sync.set(defaultSettings);
     console.log("Service worker installed");
+  });
+
+  // listener for install tracking state
+  chrome.runtime.onInstalled.addListener(async () => {
+    await ensureInstallTrackingState();
   });
 
   chrome.runtime.onInstalled.addListener(async ({ reason }) => {
