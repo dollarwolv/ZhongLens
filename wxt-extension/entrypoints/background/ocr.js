@@ -1,8 +1,9 @@
 import { onMessage } from "webext-bridge/background";
 import { getSubscriptionStatus } from "./payment";
+import { supabase } from "./supabase";
 
 const SERVER_OCR_URL = import.meta.env.VITE_SERVER_OCR_URL;
-const CLOUD_OCR_FREE_LIMIT = 1;
+const CLOUD_OCR_FREE_LIMIT = 50;
 
 async function getCloudOcrFreeUseCount() {
   const result = await chrome.storage.sync.get("cloudOcrFreeUseCount");
@@ -13,6 +14,18 @@ async function setCloudOcrFreeUseCount(count) {
   await chrome.storage.sync.set({
     ["cloudOcrFreeUseCount"]: count,
   });
+}
+
+async function getAnonInstallId() {
+  const result = await chrome.storage.sync.get("anonInstallId");
+  let anonInstallId = result.anonInstallId;
+
+  if (!anonInstallId) {
+    anonInstallId = crypto.randomUUID();
+    await chrome.storage.sync.set({ anonInstallId });
+  }
+
+  return anonInstallId;
 }
 
 // helpers
@@ -217,8 +230,11 @@ export function initOcrHandlers() {
         });
         const isSupporter =
           subscriptionStatus?.ok && subscriptionStatus?.userSubscribed;
+
+        // get OCR Count from sync storage
         const cloudOcrFreeUseCount = await getCloudOcrFreeUseCount();
 
+        // if NOT supporter and usage over limit, reject before request even sends out
         if (!isSupporter && cloudOcrFreeUseCount >= CLOUD_OCR_FREE_LIMIT) {
           return {
             ok: false,
@@ -237,9 +253,27 @@ export function initOcrHandlers() {
             endY: crop ? cropYEnd : data.cssH,
           });
 
-        // create form to send data over to backend and attach outBlob
+        // get anon install ID to attach to backend for usage tracking
+        const anonInstallId = await getAnonInstallId();
+
+        // get jwt
+        const { data: sessionData, error: sessionError } =
+          await supabase.auth.getSession();
+
+        console.log("session DATA:", sessionData);
+        console.log("session ERROR:", sessionError);
+
+        if (sessionError) {
+          throw new Error(sessionError.message || "couldn't get session...");
+        }
+
+        const jwt = sessionData?.session?.access_token;
+
+        // create form to send data over to backend and attach outBlob and anon install id
         const form = new FormData();
         form.append("raw_img", outBlob, "frame.jpeg");
+        form.append("anon_install_id", anonInstallId);
+        if (jwt) form.append("jwt", jwt);
 
         const res = await fetch(SERVER_OCR_URL, {
           method: "POST",
@@ -247,7 +281,21 @@ export function initOcrHandlers() {
         });
 
         if (!res.ok) {
-          const errorText = await res.text();
+          let errorText = "Cloud OCR request failed.";
+
+          try {
+            const errorBody = await res.json();
+            if (typeof errorBody?.detail === "string") {
+              errorText = errorBody.detail;
+            } else if (Array.isArray(errorBody?.detail)) {
+              errorText = errorBody.detail.map((item) => item.msg).join(", ");
+            } else if (typeof errorBody?.message === "string") {
+              errorText = errorBody.message;
+            }
+          } catch {
+            errorText = await res.text();
+          }
+
           console.error("Server OCR request failed:", {
             url: SERVER_OCR_URL,
             status: res.status,
@@ -258,8 +306,13 @@ export function initOcrHandlers() {
         }
         const result = await res.json();
 
+        // increase count client-side on successful request (will be changed to accept server-side only)
+        console.log("request count from server: ");
+        console.log(result?.request_count);
         if (!isSupporter) {
-          await setCloudOcrFreeUseCount(cloudOcrFreeUseCount + 1);
+          await setCloudOcrFreeUseCount(
+            result?.request_count ?? cloudOcrFreeUseCount + 1,
+          );
         }
 
         return {
@@ -320,7 +373,10 @@ export function initOcrHandlers() {
       }
     } catch (err) {
       console.error("CAPTURE_TAB failed:", err);
-      return { ok: false, error: String(err) };
+      return {
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
     }
   });
 }
