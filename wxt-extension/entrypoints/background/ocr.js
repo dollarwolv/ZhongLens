@@ -6,9 +6,59 @@ import {
   getAnonInstallId,
   getCloudOcrFreeUseCount,
   setCloudOcrFreeUseCount,
+  normalizeBoolean,
+  normalizeNumber,
+  normalizeOcrSpeed,
 } from "./cloudOcrUsage";
 
 const SERVER_OCR_URL = import.meta.env.VITE_SERVER_OCR_URL;
+
+async function getCloudPreprocessingSettings() {
+  const settings = await chrome.storage.sync.get([
+    "devSettingsEnabled",
+    "ocrSpeed",
+    "maxDim",
+    "downscaleFurther",
+    "applyThresh",
+    "thresh",
+  ]);
+
+  if (normalizeBoolean(settings.devSettingsEnabled, false)) {
+    return {
+      downscaleFurther: normalizeBoolean(settings.downscaleFurther, true),
+      applyThresh: normalizeBoolean(settings.applyThresh, false),
+      thresh: normalizeNumber(settings.thresh, 128),
+      downscaleMaxDim: normalizeNumber(settings.maxDim, 800),
+    };
+  }
+
+  switch (normalizeOcrSpeed(settings.ocrSpeed)) {
+    case 1:
+      return {
+        downscaleFurther: true,
+        applyThresh: true,
+        downscaleMaxDim: 640,
+      };
+    case 3:
+      return {
+        downscaleFurther: true,
+        applyThresh: false,
+        downscaleMaxDim: 1200,
+      };
+    case 4:
+      return {
+        downscaleFurther: false,
+        applyThresh: false,
+      };
+    case 2:
+    default:
+      return {
+        downscaleFurther: true,
+        applyThresh: false,
+        downscaleMaxDim: 800,
+      };
+  }
+}
 
 // helpers
 async function dataUrlToBlob(dataUrl) {
@@ -226,14 +276,22 @@ export function initOcrHandlers() {
         }
 
         // downscale URL to CSS Viewport size
-        const { outBlob, outDataUrl, scalingFactor } =
-          await downscaleDataUrlToViewport(dataUrl, data.cssW, data.cssH, {
+        const cloudPreprocessingSettings =
+          await getCloudPreprocessingSettings();
+
+        const { outBlob, scalingFactor } = await downscaleDataUrlToViewport(
+          dataUrl,
+          data.cssW,
+          data.cssH,
+          {
+            ...cloudPreprocessingSettings,
             crop: crop,
             startX: crop ? cropXStart : 0,
             startY: crop ? cropYStart : 0,
             endX: crop ? cropXEnd : data.cssW,
             endY: crop ? cropYEnd : data.cssH,
-          });
+          },
+        );
 
         // get anon install ID to attach to backend for usage tracking
         const anonInstallId = await getAnonInstallId();

@@ -24,6 +24,11 @@ function App() {
   const [hydrated, setHydrated] = useState(false);
   const [settings, setSettings] = useState({});
 
+  const normalizedOcrSpeed = Math.min(
+    Math.max(Number(settings.ocrSpeed) || 2, 1),
+    4,
+  );
+
   const [keys, { start, stop, isRecording }] = useRecordHotkeys();
 
   const triggerOcrInfo = {
@@ -59,7 +64,13 @@ function App() {
 
   async function loadSettings() {
     const settingsFromStorage = await chrome.storage.sync.get(null);
-    setSettings(settingsFromStorage);
+    setSettings({
+      ...settingsFromStorage,
+      ocrSpeed: Math.min(
+        Math.max(Number(settingsFromStorage.ocrSpeed) || 2, 1),
+        4,
+      ),
+    });
     setHydrated(true);
     console.log("first settings:");
     console.log(settings);
@@ -109,30 +120,12 @@ function App() {
           </FieldDescription>
         </Field>
         <FieldSeparator />
-        {/* dev settings enabled */}
-        <Field orientation="horizontal" className="">
-          <Checkbox
-            id="enable-dev-settings"
-            checked={settings.devSettingsEnabled}
-            onCheckedChange={() =>
-              setSettings({
-                ...settings,
-                devSettingsEnabled: !settings.devSettingsEnabled,
-              })
-            }
-            name="enable-dev-settings"
-          />
-          <FieldLabel htmlFor="enable-dev-settings">
-            Enable dev settings
-          </FieldLabel>
-        </Field>
-        <FieldSeparator />
         {/* OCR speed/accuracy tradeoff */}
         <Field>
           <FieldTitle>OCR Speed/Accuracy</FieldTitle>
           <FieldDescription>
-            Change this setting to make the OCR more accurate. However, this
-            also sacrifices speed.
+            Change this setting to tune cloud OCR preprocessing. Higher levels
+            preserve more image detail but usually take longer to process.
           </FieldDescription>
           <div className="flex w-full items-center justify-between">
             <span className="text-muted-foreground">Faster</span>
@@ -140,7 +133,7 @@ function App() {
           </div>
           <Slider
             // needs to be an array otherwise will crash
-            value={[settings.ocrSpeed]}
+            value={[normalizedOcrSpeed]}
             onValueChange={(value) => {
               setSettings({
                 ...settings,
@@ -148,7 +141,7 @@ function App() {
               });
             }}
             min={1}
-            max={5}
+            max={4}
             step={1}
           />
         </Field>
@@ -216,12 +209,55 @@ function App() {
           />
           <FieldSeparator />
         </FieldGroup>
+        {/* dev settings enabled */}
+        <FieldGroup>
+          <Field orientation="horizontal" className="mt-6">
+            <Checkbox
+              id="enable-dev-settings"
+              checked={settings.devSettingsEnabled}
+              onCheckedChange={() =>
+                setSettings({
+                  ...settings,
+                  devSettingsEnabled: !settings.devSettingsEnabled,
+                })
+              }
+              name="enable-dev-settings"
+            />
+            <FieldLabel htmlFor="enable-dev-settings">
+              Enable dev settings
+            </FieldLabel>
+          </Field>
+          <FieldSeparator />
+        </FieldGroup>
       </div>
       {settings.devSettingsEnabled && (
         <div>
           <h1 className="mt-8 text-3xl">Developer settings</h1>
           <FieldGroup className="mt-2">
             {/* max image dims */}
+            <Field orientation="vertical" className="mt-6">
+              <div className="flex gap-3">
+                <Switch
+                  id="enable-downscale-further"
+                  checked={settings.downscaleFurther}
+                  onCheckedChange={() =>
+                    setSettings({
+                      ...settings,
+                      downscaleFurther: !settings.downscaleFurther,
+                    })
+                  }
+                  name="enable-downscale-further"
+                />
+                <FieldLabel htmlFor="enable-downscale-further">
+                  Downscale further before cloud OCR
+                </FieldLabel>
+              </div>
+              <FieldDescription>
+                When enabled, the screenshot will be scaled down to the maximum
+                image dimension below before being sent for cloud OCR.
+              </FieldDescription>
+            </Field>
+            <FieldSeparator />
             <Field>
               <FieldLabel htmlFor="max-dimension">
                 Maximum image dimension
@@ -235,7 +271,7 @@ function App() {
               <Input
                 type="number"
                 id="max-dimension"
-                value={settings.maxDim}
+                value={settings.maxDim ?? ""}
                 onChange={(e) => {
                   setSettings({ ...settings, maxDim: e.target.value });
                 }}
@@ -244,6 +280,45 @@ function App() {
                 Example: a screenshot is originally 1920x1080px. If the max
                 resolution is set to 800, it gets downscaled to 800x450px.
               </span>
+            </Field>
+            <FieldSeparator />
+            <Field orientation="vertical" className="">
+              <div className="flex gap-3">
+                <Switch
+                  id="enable-apply-thresh"
+                  checked={settings.applyThresh}
+                  onCheckedChange={() =>
+                    setSettings({
+                      ...settings,
+                      applyThresh: !settings.applyThresh,
+                    })
+                  }
+                  name="enable-apply-thresh"
+                />
+                <FieldLabel htmlFor="enable-apply-thresh">
+                  Apply thresholding
+                </FieldLabel>
+              </div>
+              <FieldDescription>
+                Convert the image into a black-and-white thresholded version
+                before cloud OCR.
+              </FieldDescription>
+            </Field>
+            <FieldSeparator />
+            <Field>
+              <FieldLabel htmlFor="threshold-value">Threshold value</FieldLabel>
+              <FieldDescription>
+                Pixel brightness cutoff used when thresholding is enabled.
+              </FieldDescription>
+              <Input
+                type="number"
+                id="threshold-value"
+                value={settings.thresh ?? 128}
+                disabled={!settings.applyThresh}
+                onChange={(e) => {
+                  setSettings({ ...settings, thresh: e.target.value });
+                }}
+              />
             </Field>
           </FieldGroup>
         </div>

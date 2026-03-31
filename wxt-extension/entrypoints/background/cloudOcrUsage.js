@@ -65,9 +65,7 @@ export async function syncCloudOcrFreeUseCount() {
       try {
         const errorBody = await res.json();
         errorText =
-          typeof errorBody?.detail === "string"
-            ? errorBody.detail
-            : errorText;
+          typeof errorBody?.detail === "string" ? errorBody.detail : errorText;
       } catch {
         errorText = await res.text();
       }
@@ -89,4 +87,23 @@ export async function syncCloudOcrFreeUseCount() {
     console.error("Failed to sync Cloud OCR usage count:", error);
     return null;
   }
+}
+
+export function normalizeBoolean(value, fallback = false) {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+export function normalizeNumber(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+export function normalizeOcrSpeed(value) {
+  const parsed = Number(value);
+
+  if (!Number.isFinite(parsed)) {
+    return 2;
+  }
+
+  return Math.min(Math.max(Math.round(parsed), 1), 4);
 }
