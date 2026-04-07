@@ -1,11 +1,13 @@
 import Stripe from "stripe";
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
+import { getAppUrl } from "@/utils/app-url";
 
 export async function POST(req) {
   try {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
     const supabase = await createClient();
+    const appUrl = getAppUrl();
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.startsWith("Bearer ")
       ? authHeader.slice("Bearer ".length)
@@ -48,7 +50,7 @@ export async function POST(req) {
 
     const session = await stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,
-      return_url: "https://zhonglens.dev/account",
+      return_url: `${appUrl}/account`,
     });
 
     if (!session)

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { createClient } from "@/utils/supabase/server";
+import { getAppUrl } from "@/utils/app-url";
 
 const priceMap = {
   monthly: "price_1T5KcKEI5TwrmxmbiObj3Fne",
@@ -41,7 +42,7 @@ export async function POST(req) {
 
     const mode = type === "monthly" ? "subscription" : "payment";
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    const appUrl = getAppUrl();
     const price = priceMap[type];
 
     const session = await stripe.checkout.sessions.create({
@@ -96,7 +97,7 @@ export async function POST(req) {
       { status: 200 },
     );
   } catch (error) {
-    return NextResponse(
+    return NextResponse.json(
       { ok: false, error: error.message || "Unknown error" },
       { status: 500 },
     );
