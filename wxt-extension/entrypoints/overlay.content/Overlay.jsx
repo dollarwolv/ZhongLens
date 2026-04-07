@@ -12,16 +12,27 @@ export default ({ onClose }) => {
   const [crop, setCrop] = useState(false);
   const [startX, setStartX] = useState(0);
   const [startY, setStartY] = useState(0);
+  const [status, setStatus] = useState("Analyzing...");
+  const [mode, setMode] = useState();
+
+  async function getMode() {
+    const response = await chrome.storage.sync.get("serverProcessingEnabled");
+    const serverProcessingEnabled = response.serverProcessingEnabled;
+    if (serverProcessingEnabled) setMode("Cloud OCR");
+    else setMode("Local OCR");
+  }
 
   async function screenshot() {
     setLoading(true);
     const { cssW, cssH } = getViewportCssSize();
+    setStatus("Processing image...");
     const res = await sendMessage("CAPTURE_TAB", { cssW, cssH }, "background");
     if (!res.ok) {
       setError(res?.error);
       setLoading(false);
       return;
     }
+    setStatus("Untangling response...");
     const resultData = res?.result;
     const mode = res?.mode;
 
@@ -74,6 +85,7 @@ export default ({ onClose }) => {
   }
 
   useEffect(() => {
+    getMode();
     screenshot();
   }, []);
 
@@ -122,7 +134,8 @@ export default ({ onClose }) => {
               strokeDasharray="14 10"
             />
           </svg>
-          <span className="mt-1">Analyzing...</span>
+          <span className="mt-2">Using {mode}</span>
+          <span className="mt-2">{status}</span>
         </div>
       )}
       {error && (
