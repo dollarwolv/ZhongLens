@@ -68,13 +68,6 @@
         "secondary": "Back"
       },
       {
-        "title": "Customize ZhongLens",
-        "description": "To change your settings, just open the extensions panel click on the ZhongLens logo.\nOn this page, you can crop, switch OCR modes, toggle shortcuts, and become a supporter.",
-        "giphy": "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMG5lY2w5N2xuaXV3cTZyM3dpMThuMnd2eXM5ZHZ1Znc0NDE5amN0byZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/jNC0cpPnXPU5ML9gRu/giphy.gif",
-        "primary": "Continue",
-        "secondary": "Back"
-      },
-      {
         "title": "Get better results: Cropping",
         "description": "The larger the scanned area is, the slower and noisier OCR gets.\nCrop to your subtitle area for the best results (Ctrl + U to open, Ctrl + I to close).\nYou may need to re-crop if subtitles move or you switch into fullscreen.",
         "giphy": "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExMjh3aDNpZW5pZTJrbGJwZGpmMGFtdGVsdDQ0MDdnazFpNGRrdjdqdiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/X9PHcIbSjtWYXpF8Fg/giphy.gif",
@@ -89,6 +82,13 @@
         "secondary": "Back"
       },
       {
+        "title": "Customize ZhongLens",
+        "description": "To change your settings, just open the extensions panel click on the ZhongLens logo.\nOn this page, you can crop, switch OCR modes, toggle shortcuts, and become a supporter.",
+        "giphy": "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMG5lY2w5N2xuaXV3cTZyM3dpMThuMnd2eXM5ZHZ1Znc0NDE5amN0byZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/jNC0cpPnXPU5ML9gRu/giphy.gif",
+        "primary": "Continue",
+        "secondary": "Back"
+      },
+      {
         "title": "You're ready!",
         "description": "You can now use ZhongLens! If you have any more questions, please refer to the FAQ or send me an email at dev@zhonglens.dev.",
         "giphy": "https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExajlqN2l0OXNtOXBtaXg4MHRjdHJmY3Y3cDc2a2Q1OXp6MXBucDY3YiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/75yYfqYy5tmHm/giphy.gif",
@@ -99,11 +99,7 @@
   },
   "profile": {
     "membershipStatus": {
-      "free": [
-        "Plan: Free",
-        "Unlimited Local Scans",
-        "50 Free Cloud Scans per Month"
-      ],
+      "free": ["Plan: Free", "Unlimited Local Scans", "50 Free Cloud Scans"],
       "supporter": [
         "Plan: Supporter",
         "Unlimited Local / Cloud Scans",
@@ -115,33 +111,27 @@
     "supporterPlans": {
       "monthly": {
         "price": "$2.99",
-        "sub": [
-          "per month",
-          "plus VAT"
-        ],
-        "desc": "Support ongoing development and unlock unlimited cloud usage and extra customization.",
+        "sub": ["per month", "plus VAT"],
+        "desc": "Unlock unlimited cloud usage and extra customization and support ongoing development.",
         "cta": "Start monthly",
         "perks": [
           "Unlimited Cloud Usage",
-          "Supports the Project",
           "Dev Settings for full control",
-          "Priority Support"
+          "Priority Support",
+          "Supports the Project"
         ]
       },
       "lifetime": {
         "price": "$27.99",
-        "sub": [
-          "one time",
-          "plus VAT"
-        ],
+        "sub": ["one time", "plus VAT"],
         "desc": "One-time support. Keep premium access and help sustain ZhongLens long-term.",
         "cta": "Get lifetime access",
         "perks": [
           "Lifetime premium access",
           "Unlimited Cloud Usage",
-          "Supports the Project",
           "Dev Settings for full control",
-          "Priority Support"
+          "Priority Support",
+          "Supports the Project"
         ]
       }
     }

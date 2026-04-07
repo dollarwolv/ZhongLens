@@ -182,7 +182,7 @@ function Upgrade() {
               <CardTitle className="text-xl">ZhongLens Standard</CardTitle>
               <CardDescription>
                 Get started with unlimited local OCR and a set number of cloud
-                scans per month.
+                scans.
               </CardDescription>
               <div className="flex items-end gap-2">
                 <span className="text-5xl font-bold">Free</span>
@@ -199,7 +199,7 @@ function Upgrade() {
                 </li>
                 <li className="flex flex-row items-center gap-1">
                   <Check height={16} />
-                  50 Cloud Scans per month
+                  50 Cloud Scans
                 </li>
                 <li className="flex flex-row items-center gap-1">
                   <Check height={16} />
