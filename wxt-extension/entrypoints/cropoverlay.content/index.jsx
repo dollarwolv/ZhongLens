@@ -69,8 +69,5 @@ export default defineContentScript({
         return; // sync response
       }
     });
-
-    document.addEventListener("keydown", onKeyDown);
-    ctx.onInvalidated(() => document.removeEventListener("keydown", onKeyDown));
   },
 });
