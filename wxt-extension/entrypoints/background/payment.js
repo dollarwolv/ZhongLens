@@ -1,7 +1,8 @@
 import { onMessage } from "webext-bridge/background";
 import { supabase } from "./supabase";
 
-const YOUR_DOMAIN = "http://127.0.0.1:3000";
+const YOUR_DOMAIN =
+  import.meta.env.VITE_WEBSITE_URL || "https://www.zhonglens.dev";
 
 async function getCachedSubscriptionStatus() {
   const result = await chrome.storage.local.get("subscriptionStatus");
