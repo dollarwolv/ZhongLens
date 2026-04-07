@@ -21,9 +21,10 @@ function EmailForm() {
     const resJson = await res.json();
 
     console.log(resJson);
+    setLoading(false);
 
     if (!resJson.ok) {
-      setError(res.error);
+      setError(resJson.error);
       return;
     }
 
