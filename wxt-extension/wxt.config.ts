@@ -17,12 +17,7 @@ export default defineConfig({
     },
     web_accessible_resources: [
       {
-        resources: [
-          "tesseract/worker.min.js",
-          "tesseract/core/*",
-          // if you bundle traineddata:
-          // "tesseract/lang/*",
-        ],
+        resources: ["tesseract/worker.min.js", "tesseract/core/*"],
         matches: ["<all_urls>"],
       },
     ],

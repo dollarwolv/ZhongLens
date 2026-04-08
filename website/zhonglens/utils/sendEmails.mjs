@@ -5,6 +5,8 @@ import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
 import { getUnsubscribeUrl } from "./app-url.js";
 
+// This whole thing is ChatGPT-generated – I don't wanna take credit for what I didn't do
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
