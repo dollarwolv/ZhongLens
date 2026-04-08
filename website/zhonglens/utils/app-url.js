@@ -9,3 +9,7 @@ export function getAppUrl() {
 
   return configuredUrl.replace(/\/+$/, "");
 }
+
+export function getUnsubscribeUrl(unsubscribeToken) {
+  return `${getAppUrl()}/api/unsubscribe?unsubscribe_token=${encodeURIComponent(unsubscribeToken)}`;
+}

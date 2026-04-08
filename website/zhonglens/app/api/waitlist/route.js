@@ -1,13 +1,12 @@
 import { createClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
-import { getAppUrl } from "@/utils/app-url";
+import { getUnsubscribeUrl } from "@/utils/app-url";
 
 export async function POST(req) {
   try {
     const supabase = await createClient();
     const resend = new Resend(process.env.RESEND_API_KEY);
-    const appUrl = getAppUrl();
     const { email } = await req.json();
     const normalizedEmail = email.trim().toLowerCase();
 
@@ -24,12 +23,13 @@ export async function POST(req) {
       return NextResponse.json({ ok: true, data: data, sent: false });
 
     if (!data[0].unsubscribed_at) {
+      const unsubscribeUrl = getUnsubscribeUrl(data[0].unsubscribe_token);
       const { data: emailData, error: emailError } = await resend.emails.send({
         from: `Justin from ZhongLens <updates@zhonglens.dev>`,
         to: [normalizedEmail],
         subject: "Thanks for your interest in ZhongLens!",
         headers: {
-          "List-Unsubscribe": `<${appUrl}/api/unsubscribe?unsubscribe_token=${data[0].unsubscribe_token}>`,
+          "List-Unsubscribe": `<${unsubscribeUrl}>`,
         },
         html: `
       <p>
@@ -41,7 +41,7 @@ export async function POST(req) {
         You'll hear from me soon!<br><br>
       </p>
 
-      <span>If you would like to unsubscribe from this newsletter, click this link: <a href="${appUrl}/api/unsubscribe?unsubscribe_token=${data[0].unsubscribe_token}">unsubscribe</a></span>`,
+      <span>If you would like to unsubscribe from this newsletter, click this link: <a href="${unsubscribeUrl}">unsubscribe</a></span>`,
       });
       if (emailError) throw emailError;
       return NextResponse.json({ ok: true, data: data, sent: true });
