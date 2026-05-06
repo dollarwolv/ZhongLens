@@ -1,0 +1,14 @@
+Hey,
+
+Quick correction: the unsubscribe link in my previous ZhongLens beta email was wrong because it pointed to a local development address.
+
+Here is the working unsubscribe link: {{UNSUBSCRIBE_URL}}
+
+You can also reply to this email with "unsubscribe" and I will remove you manually.
+
+Sorry about that.
+
+Justin
+
+{{UNSUBSCRIBE_TEXT}}
+{{POSTAL_ADDRESS_TEXT}}

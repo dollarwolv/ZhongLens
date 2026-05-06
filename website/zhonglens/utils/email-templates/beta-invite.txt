@@ -1,0 +1,22 @@
+Hey,
+
+I am opening up a very small ZhongLens beta for 5 people from the waitlist.
+
+If you would like to join, reply to this email. The first 5 people to reply will be invited.
+
+This beta is for people who expect to use ZhongLens frequently, are willing to share in-depth feedback, and can report bugs when they run into them. You should also be using Chrome or another Chromium-based browser like Arc, since Firefox is not supported yet.
+
+If you are selected, you will get:
+
+3 months of ZhongLens supporter for free, including access to the Cloud OCR model
+
+a special price of $0,99 USD per month afterwards as a thank you for helping shape the product
+
+If you are interested, reply with a short note about how you plan to use ZhongLens and which browser you use.
+
+Thanks again for being on the waitlist.
+
+Justin
+
+{{UNSUBSCRIBE_TEXT}}
+{{POSTAL_ADDRESS_TEXT}}

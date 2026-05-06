@@ -1,0 +1,36 @@
+<!--
+  Edit this file to change the HTML version of the correction email.
+  The sender replaces the {{PLACEHOLDER}} values at send time.
+
+  Available placeholders:
+  {{PROFILE_IMAGE_HTML}}      Optional image tag from WAITLIST_PROFILE_IMAGE_URL.
+  {{UNSUBSCRIBE_URL}}         Working unsubscribe URL for this recipient.
+  {{UNSUBSCRIBE_FOOTER_HTML}} Standard unsubscribe footer.
+  {{POSTAL_ADDRESS_HTML}}     Optional mailing address from WAITLIST_POSTAL_ADDRESS.
+-->
+<div style="font-family: Arial, sans-serif; color: #111827; line-height: 1.6; max-width: 640px; margin: 0 auto;">
+  {{PROFILE_IMAGE_HTML}}
+
+  <p>Hey,</p>
+
+  <p>
+    Quick correction: the unsubscribe link in my previous ZhongLens beta email was wrong because it pointed
+    to a local development address.
+  </p>
+
+  <p>
+    Here is the working unsubscribe link:
+    <a href="{{UNSUBSCRIBE_URL}}" style="color: #2563eb;">{{UNSUBSCRIBE_URL}}</a>
+  </p>
+
+  <p>You can also reply to this email with "unsubscribe" and I will remove you manually.</p>
+
+  <p>Sorry about that.</p>
+
+  <p>Justin</p>
+
+  <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+
+  {{UNSUBSCRIBE_FOOTER_HTML}}
+  {{POSTAL_ADDRESS_HTML}}
+</div>
