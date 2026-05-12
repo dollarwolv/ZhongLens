@@ -4,8 +4,8 @@ import { createClient } from "@/utils/supabase/server";
 import { getAppUrl } from "@/utils/app-url";
 
 const priceMap = {
-  monthly: "price_1T5KcKEI5TwrmxmbiObj3Fne",
-  lifetime: "price_1TGtOFEI5TwrmxmbotOuUgN8",
+  monthly: "price_1TWNUsCsOKbuuJ9F5blVX03u",
+  lifetime: "price_1TWNUsCsOKbuuJ9Fw0jpzcWs",
 };
 
 export async function POST(req) {

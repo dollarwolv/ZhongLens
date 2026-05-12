@@ -67,6 +67,7 @@ Options:
   --send-test-email  Send this email to one specific address only.
   --mode <mode>      Email mode: beta-invite or unsubscribe-correction.
   --correction       Shortcut for --mode unsubscribe-correction.
+  --no-profile-image Do not include WAITLIST_PROFILE_IMAGE_URL in the email.
   --help             Show this message.
 
 Editable email templates:
@@ -76,6 +77,7 @@ Editable email templates:
 Optional environment variables:
   NEXT_PUBLIC_APP_URL                  Must be public HTTPS for real sends.
   WAITLIST_PROFILE_IMAGE_URL           Public HTTPS image URL for your picture.
+  WAITLIST_INCLUDE_PROFILE_IMAGE=false Disables the picture without removing URL.
   WAITLIST_POSTAL_ADDRESS              Mailing address added to the footer.
   WAITLIST_CORRECTION_EMAIL_SUBJECT    Subject override for correction mode.
   WAITLIST_BETA_INVITE_SUBJECT         Subject override for beta invite mode.
@@ -106,6 +108,7 @@ function parseArgs(argv) {
     help: false,
     limit: null,
     mode: EMAIL_MODES.betaInvite,
+    profileImageEnabled: process.env.WAITLIST_INCLUDE_PROFILE_IMAGE !== "false",
     sendTestEmail: null,
   };
 
@@ -124,6 +127,11 @@ function parseArgs(argv) {
 
     if (arg === "--correction") {
       options.mode = EMAIL_MODES.unsubscribeCorrection;
+      continue;
+    }
+
+    if (arg === "--no-profile-image") {
+      options.profileImageEnabled = false;
       continue;
     }
 
@@ -295,7 +303,11 @@ function buildPostalAddressText() {
 }
 
 // Optional sender photo. Email images should be hosted at a public HTTPS URL.
-function buildProfileImageHtml() {
+function buildProfileImageHtml(profileImageEnabled) {
+  if (!profileImageEnabled) {
+    return "";
+  }
+
   const imageUrl = process.env.WAITLIST_PROFILE_IMAGE_URL?.trim();
 
   if (!imageUrl) {
@@ -305,10 +317,10 @@ function buildProfileImageHtml() {
   return `
     <img
       src="${escapeHtml(imageUrl)}"
-      alt="Justin"
-      width="56"
+      alt="ZhongLens Logo"
       height="56"
-      style="display: block; width: 56px; height: 56px; border-radius: 50%; object-fit: cover; margin: 0 0 16px;"
+      width="168"
+      style="display: block; width: 168px; height: 58px; border-radius: 12px; object-fit: cover; margin: 0 0 16px;"
     />
   `.trim();
 }
@@ -323,7 +335,7 @@ function renderTemplate(template, replacements) {
 }
 
 // Create the final HTML/text pair for one recipient.
-function renderEmail({ mode, templates, unsubscribeUrl, user }) {
+function renderEmail({ mode, options, templates, unsubscribeUrl, user }) {
   const unsubscribeText = unsubscribeUrl
     ? `Unsubscribe: ${unsubscribeUrl}`
     : "This is a one-off test send, so the unsubscribe link is omitted.";
@@ -333,7 +345,7 @@ function renderEmail({ mode, templates, unsubscribeUrl, user }) {
     EMAIL: user.email,
     POSTAL_ADDRESS_HTML: buildPostalAddressHtml(),
     POSTAL_ADDRESS_TEXT: buildPostalAddressText(),
-    PROFILE_IMAGE_HTML: buildProfileImageHtml(),
+    PROFILE_IMAGE_HTML: buildProfileImageHtml(options.profileImageEnabled),
     UNSUBSCRIBE_FOOTER_HTML: unsubscribeUrl
       ? `<p style="font-size: 12px; color: #6b7280; margin: 0;"><a href="${unsubscribeUrl}" style="color: #2563eb;">Unsubscribe here</a>.</p>`
       : `<p style="font-size: 12px; color: #6b7280; margin: 0;">This is a one-off test send, so the unsubscribe link is omitted.</p>`,
@@ -375,22 +387,28 @@ function assertPublicHttpsUrl(value, envName) {
 }
 
 // Validate every URL that will be visible inside the outbound email.
-function assertPublicSendUrls() {
+function assertPublicSendUrls(options) {
   assertPublicHttpsUrl(getAppUrl(), "NEXT_PUBLIC_APP_URL");
 
   const profileImageUrl = process.env.WAITLIST_PROFILE_IMAGE_URL?.trim();
 
-  if (profileImageUrl) {
+  if (options.profileImageEnabled && profileImageUrl) {
     assertPublicHttpsUrl(profileImageUrl, "WAITLIST_PROFILE_IMAGE_URL");
   }
 }
 
 // Build one Resend email object for one recipient.
-function createEmailPayload(user, mode, templates) {
+function createEmailPayload(user, mode, templates, options) {
   const unsubscribeUrl = user.unsubscribe_token
     ? getUnsubscribeUrl(user.unsubscribe_token)
     : null;
-  const renderedEmail = renderEmail({ mode, templates, unsubscribeUrl, user });
+  const renderedEmail = renderEmail({
+    mode,
+    options,
+    templates,
+    unsubscribeUrl,
+    user,
+  });
 
   return {
     from: process.env.WAITLIST_FROM_EMAIL?.trim() || DEFAULT_FROM,
@@ -408,8 +426,10 @@ function createEmailPayload(user, mode, templates) {
 }
 
 // Build the Resend batch payload for one chunk of recipients.
-function createBatchPayload(users, mode, templates) {
-  return users.map((user) => createEmailPayload(user, mode, templates));
+function createBatchPayload(users, mode, templates, options) {
+  return users.map((user) =>
+    createEmailPayload(user, mode, templates, options),
+  );
 }
 
 // Normal sends only target users who are still subscribed and not unsubscribed.
@@ -514,6 +534,9 @@ function logRunSummary({ config, options, recipients, templates }) {
   console.log(`Subject: ${getEmailSubject(options.mode)}`);
   console.log(`HTML template: ${templates.paths.html}`);
   console.log(`Text template: ${templates.paths.text}`);
+  console.log(
+    `Profile image: ${options.profileImageEnabled ? "enabled" : "disabled"}`,
+  );
 
   if (options.sendTestEmail) {
     console.log(
@@ -545,7 +568,7 @@ async function sendBatches({ mode, recipients, supabase, templates, options }) {
   for (let index = 0; index < recipientChunks.length; index += 1) {
     const batchNumber = index + 1;
     const recipientChunk = recipientChunks[index];
-    const payload = createBatchPayload(recipientChunk, mode, templates);
+    const payload = createBatchPayload(recipientChunk, mode, templates, options);
 
     console.log(
       `Sending batch ${batchNumber}/${recipientChunks.length} (${recipientChunk.length} recipient(s))...`,
@@ -599,7 +622,7 @@ async function main() {
     return;
   }
 
-  assertPublicSendUrls();
+  assertPublicSendUrls(options);
   await sendBatches({
     mode: options.mode,
     options,
