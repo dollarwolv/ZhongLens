@@ -150,6 +150,42 @@ function App() {
     }
   }
 
+  async function capturePopupOpened(settingsFromStorage) {
+    // This is a simple page-view style event for the popup, with enough context
+    // to understand what state the user was in when they opened it.
+    let popupIsLoggedIn = false;
+    let popupIsSubscribed = false;
+
+    try {
+      const sessionRes = await sendMessage("AUTH_GET_SESSION", {}, "background");
+      popupIsLoggedIn = Boolean(sessionRes?.session);
+
+      if (popupIsLoggedIn) {
+        const subscriptionRes = await sendMessage(
+          "GET_SUBSCRIPTION_STATUS",
+          { useCached: true },
+          "background",
+        );
+        popupIsSubscribed = Boolean(subscriptionRes?.userSubscribed);
+      }
+    } catch {
+      // Analytics should never block the popup from opening.
+    }
+
+    void captureEvent("popup_opened", {
+      is_logged_in: popupIsLoggedIn,
+      is_subscribed: popupIsSubscribed,
+      crop_enabled: Boolean(settingsFromStorage.crop),
+      cloud_enabled: Boolean(settingsFromStorage.serverProcessingEnabled),
+      cloud_ocr_remaining: getRemainingCloudOcrUses(
+        settingsFromStorage.cloudOcrFreeUseCount,
+      ),
+      has_completed_onboarding: Boolean(
+        settingsFromStorage.hasCompletedOnboarding,
+      ),
+    });
+  }
+
   useEffect(() => {
     (async () => {
       const settingsFromStorage = await chrome.storage.sync.get(null);
@@ -157,6 +193,7 @@ function App() {
       setCloudOcrFreeUseCount(
         Number(settingsFromStorage.cloudOcrFreeUseCount) || 0,
       );
+      void capturePopupOpened(settingsFromStorage);
       getOverlayState("CROP");
       getOverlayState("OCR");
       getLoginStatus();
