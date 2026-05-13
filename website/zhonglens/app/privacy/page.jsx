@@ -4,7 +4,7 @@ export const metadata = {
     "Privacy Policy for the ZhongLens website and browser extension.",
 };
 
-const lastUpdated = "April 8, 2026";
+const lastUpdated = "May 13, 2026";
 
 const sections = [
   {
@@ -20,6 +20,7 @@ const sections = [
       "Depending on how you use ZhongLens, we may collect account information such as your email address, authentication and session information needed to keep you signed in, waitlist signup information, subscription status information, internal account identifiers, and support messages you send to us.",
       "The browser extension also stores operational and preference data in browser storage, such as OCR mode, crop settings, onboarding state, shortcut preferences, usage counters, subscription cache data, and an anonymous installation identifier used for cloud OCR usage tracking.",
       "If you use ZhongLens's OCR features, the extension may process screenshots of the visible tab or a user-selected area of a webpage so it can detect and display text. When cloud OCR is enabled, the backend receives the image data needed to perform OCR, an anonymous installation identifier, and, if you are signed in, a JWT that allows the backend to resolve your account and check subscription status.",
+      "The browser extension may use analytics tooling to understand feature usage and reliability. For OCR-related analytics, ZhongLens may collect the origin of the website where OCR was performed, such as https://example.com, but not the full page URL, path, query string, or fragment.",
       "The ZhongLens website also uses analytics tooling to understand aggregate usage of the site. Standard technical information such as browser metadata, page visits, and related usage events may be processed through those tools.",
     ],
   },
@@ -65,7 +66,7 @@ const sections = [
   {
     title: "Data Sharing and Service Providers",
     body: [
-      "ZhongLens shares information only as needed to operate the product and related services. Service providers currently used in the codebase include Supabase for authentication and application data, Stripe for payments and subscription management, Resend for sending emails, and Vercel Analytics for website analytics.",
+      "ZhongLens shares information only as needed to operate the product and related services. Service providers currently used in the codebase include Supabase for authentication and application data, Stripe for payments and subscription management, Resend for sending emails, Vercel Analytics for website analytics, and PostHog for product analytics.",
       "If you use cloud OCR, OCR image data is processed by ZhongLens's backend infrastructure so the OCR result can be returned to you. The backend also uses Supabase to read or update the non-image operational records described above, such as usage counts, linked user identifiers, and subscription status checks.",
       "We may also disclose information if required by law, to enforce our terms, or to protect the security, rights, or integrity of ZhongLens, its users, or others.",
     ],

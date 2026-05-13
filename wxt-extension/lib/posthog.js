@@ -5,6 +5,7 @@ const POSTHOG_CAPTURE_URL = `${POSTHOG_HOST}/i/v0/e/`;
 const POSTHOG_USER_ID_STORAGE_KEY = "posthogUserId";
 const ANON_INSTALL_ID_STORAGE_KEY = "anonInstallId";
 const EXTENSION_INSTALL_TYPE = import.meta.env.DEV ? "development" : "normal";
+const WEB_PAGE_PROTOCOLS = new Set(["http:", "https:"]);
 
 export async function getAnalyticsDistinctId() {
   // If the user has logged in, use their email as the PostHog distinct_id.
@@ -31,11 +32,46 @@ export async function getAnalyticsDistinctId() {
   return anonInstallId;
 }
 
-function getExtensionContext() {
+function getWebOrigin(url) {
+  try {
+    const parsedUrl = new URL(url);
+    if (!WEB_PAGE_PROTOCOLS.has(parsedUrl.protocol)) return null;
+    // Keep analytics coarse-grained: origin only, never path/query/hash.
+    return parsedUrl.origin;
+  } catch {
+    return null;
+  }
+}
+
+async function getActiveTabOrigin() {
+  try {
+    if (!chrome.tabs?.query) return null;
+    // Extension pages do not have the OCR page as their own location, so use
+    // the active tab when Chrome exposes it and still reduce it to an origin.
+    const [activeTab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
+    return getWebOrigin(activeTab?.url);
+  } catch {
+    return null;
+  }
+}
+
+async function getPageOrigin() {
+  // Content scripts run at the page URL, while popup/background contexts run at
+  // extension URLs. Events without a web page context intentionally return null.
+  const currentPageOrigin = getWebOrigin(globalThis.location?.href);
+  if (currentPageOrigin) return currentPageOrigin;
+  return await getActiveTabOrigin();
+}
+
+async function getExtensionContext() {
   return {
     extension_origin: chrome.runtime.getURL("").slice(0, -1),
     extension_install_type: EXTENSION_INSTALL_TYPE,
     is_unpacked_extension: EXTENSION_INSTALL_TYPE === "development",
+    page_origin: await getPageOrigin(),
   };
 }
 
@@ -44,7 +80,7 @@ async function sendEvent(event, properties = {}, distinctId) {
 
   const propertiesWithContext = {
     ...properties,
-    ...getExtensionContext(),
+    ...(await getExtensionContext()),
   };
 
   const body = {
