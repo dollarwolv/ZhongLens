@@ -16,7 +16,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { sendMessage } from "webext-bridge/popup";
 import { getCopywritingSection } from "@/lib/copywriting";
 import { toast } from "sonner";
-import { captureEvent } from "@/lib/posthog";
+import { captureEvent, getAnalyticsDistinctId } from "@/lib/posthog";
 
 function Upgrade() {
   const navigate = useNavigate();
@@ -122,10 +122,16 @@ function Upgrade() {
         return;
       }
 
+      const posthogDistinctId = await getAnalyticsDistinctId();
+
       // start stripe checkout session
       const res = await sendMessage(
         "STRIPE_START_CHECKOUT_SESSION",
-        { type: supporterBilling, accessToken: accessToken },
+        {
+          type: supporterBilling,
+          accessToken: accessToken,
+          posthogDistinctId,
+        },
         "background",
       );
 

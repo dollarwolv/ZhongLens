@@ -5,7 +5,7 @@ const POSTHOG_CAPTURE_URL = `${POSTHOG_HOST}/i/v0/e/`;
 const POSTHOG_USER_ID_STORAGE_KEY = "posthogUserId";
 const ANON_INSTALL_ID_STORAGE_KEY = "anonInstallId";
 
-async function getDistinctId() {
+export async function getAnalyticsDistinctId() {
   // If the user has logged in, use their email as the PostHog distinct_id.
   const storedIds = await chrome.storage.sync.get([
     POSTHOG_USER_ID_STORAGE_KEY,
@@ -61,7 +61,7 @@ async function sendEvent(event, properties = {}, distinctId) {
   const body = {
     api_key: POSTHOG_KEY,
     event,
-    distinct_id: distinctId || (await getDistinctId()),
+    distinct_id: distinctId || (await getAnalyticsDistinctId()),
     properties: propertiesWithContext,
   };
 

@@ -3,6 +3,59 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/utils/supabase/admin";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const POSTHOG_KEY =
+  process.env.POSTHOG_KEY || process.env.NEXT_PUBLIC_POSTHOG_KEY;
+const POSTHOG_HOST =
+  process.env.POSTHOG_HOST ||
+  process.env.NEXT_PUBLIC_POSTHOG_HOST ||
+  "https://eu.i.posthog.com";
+
+async function captureCheckoutCompleted(session) {
+  if (!POSTHOG_KEY) {
+    console.warn("Skipping checkout_completed analytics: POSTHOG_KEY is unset");
+    return;
+  }
+
+  const distinctId =
+    session.metadata?.posthog_distinct_id ||
+    session.metadata?.supabase_user_id ||
+    session.client_reference_id;
+
+  if (!distinctId) {
+    console.warn("Skipping checkout_completed analytics: missing distinct id");
+    return;
+  }
+
+  const stripeCustomerId =
+    typeof session.customer === "string" ? session.customer : null;
+  const stripeSubscriptionId =
+    typeof session.subscription === "string" ? session.subscription : null;
+
+  const response = await fetch(`${POSTHOG_HOST}/i/v0/e/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      api_key: POSTHOG_KEY,
+      event: "checkout_completed",
+      distinct_id: distinctId,
+      properties: {
+        billing_type: session.metadata?.billing,
+        stripe_checkout_session_id: session.id,
+        stripe_customer_id: stripeCustomerId,
+        stripe_subscription_id: stripeSubscriptionId,
+        stripe_mode: session.mode,
+        amount_total: session.amount_total,
+        currency: session.currency,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    console.warn(
+      `checkout_completed analytics failed with status ${response.status}`,
+    );
+  }
+}
 
 export async function POST(req) {
   const signature = req.headers.get("stripe-signature");
@@ -54,6 +107,12 @@ export async function POST(req) {
 
         if (error) {
           throw error;
+        }
+
+        try {
+          await captureCheckoutCompleted(session);
+        } catch (error) {
+          console.warn("checkout_completed analytics failed", error);
         }
 
         break;
