@@ -3,6 +3,12 @@ import ChildText from "./ChildText";
 import "~/assets/tailwind.content.css";
 import { Checkbox } from "@/components/ui/checkbox";
 import { sendMessage } from "webext-bridge/content-script";
+import { captureEvent } from "@/lib/posthog";
+import {
+  getOcrAnalyticsProperties,
+  getOcrFailureCode,
+  NO_TEXT_FOUND_ERROR,
+} from "@/lib/ocrAnalytics";
 
 export default ({ onClose }) => {
   const [loading, setLoading] = useState(false);
@@ -23,11 +29,27 @@ export default ({ onClose }) => {
   }
 
   async function screenshot() {
+    // Start timing before the screenshot request so duration_ms covers the
+    // whole OCR wait from the user's point of view.
+    const startedAt = performance.now();
     setLoading(true);
     const { cssW, cssH } = getViewportCssSize();
     setStatus("Processing image...");
     const res = await sendMessage("CAPTURE_TAB", { cssW, cssH }, "background");
     if (!res.ok) {
+      const fullErrorCode = res?.error || "OCR failed.";
+      const eventProperties = await getOcrAnalyticsProperties({
+        response: res,
+      });
+      void captureEvent("ocr_failed", {
+        ...eventProperties,
+        duration_ms: Math.round(performance.now() - startedAt),
+        error_code: getOcrFailureCode(
+          fullErrorCode,
+          eventProperties.processing_mode,
+        ),
+        full_error_code: fullErrorCode,
+      });
       setError(res?.error);
       setLoading(false);
       return;
@@ -66,9 +88,31 @@ export default ({ onClose }) => {
     }
 
     setData(data);
+    // This event means OCR work actually started and returned a response.
+    // Keep these property names aligned with ocr_requested for easy comparison.
+    void captureEvent("ocr_started", {
+      processing_mode: mode,
+      crop_enabled: Boolean(res?.crop),
+    });
+
+    const eventProperties = await getOcrAnalyticsProperties({ response: res });
     if (data.length === 0) {
-      setError("No text found. Please try again.");
+      void captureEvent("ocr_failed", {
+        ...eventProperties,
+        duration_ms: Math.round(performance.now() - startedAt),
+        error_code: "no_text_found",
+        full_error_code: NO_TEXT_FOUND_ERROR,
+      });
+      setError(NO_TEXT_FOUND_ERROR);
+      setLoading(false);
+      return;
     }
+
+    void captureEvent("ocr_completed", {
+      ...eventProperties,
+      duration_ms: Math.round(performance.now() - startedAt),
+      text_blocks_count: data.length,
+    });
     setStartX(res?.startX);
     setStartY(res?.startY);
     setScalingFactor(res?.scalingFactor);

@@ -16,6 +16,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { sendMessage } from "webext-bridge/popup";
 import { getCopywritingSection } from "@/lib/copywriting";
 import { toast } from "sonner";
+import { captureEvent, getAnalyticsDistinctId } from "@/lib/posthog";
 
 function Upgrade() {
   const navigate = useNavigate();
@@ -61,6 +62,9 @@ function Upgrade() {
 
   useEffect(() => {
     let mounted = true;
+
+    // Simple page-view style event for the upgrade screen.
+    void captureEvent("upgrade_viewed");
 
     async function loadUpgradeCopy() {
       try {
@@ -121,10 +125,16 @@ function Upgrade() {
         return;
       }
 
+      const posthogDistinctId = await getAnalyticsDistinctId();
+
       // start stripe checkout session
       const res = await sendMessage(
         "STRIPE_START_CHECKOUT_SESSION",
-        { type: supporterBilling, accessToken: accessToken },
+        {
+          type: supporterBilling,
+          accessToken: accessToken,
+          posthogDistinctId,
+        },
         "background",
       );
 
@@ -136,6 +146,9 @@ function Upgrade() {
         );
       } else {
         // if res ok, create new tab
+        await captureEvent("checkout_initiated", {
+          billing_type: supporterBilling,
+        });
         chrome.tabs.create({ url: res.stripeUrl });
       }
     } finally {
@@ -169,6 +182,7 @@ function Upgrade() {
           value={supporterBilling}
           onValueChange={(value) => {
             if (!value) return;
+            void captureEvent("billing_type_changed", { billing_type: value });
             setSupporterBilling(value);
           }}
           className=""

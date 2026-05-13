@@ -35,6 +35,10 @@ export async function POST(req) {
 
     const body = await req.json();
     const type = body.type;
+    const posthogDistinctId =
+      typeof body.posthogDistinctId === "string"
+        ? body.posthogDistinctId
+        : null;
 
     if (!type || !(type in priceMap)) {
       return NextResponse.json({ error: "Invalid type" }, { status: 400 });
@@ -44,6 +48,12 @@ export async function POST(req) {
 
     const appUrl = getAppUrl();
     const price = priceMap[type];
+    const metadata = {
+      supabase_user_id: user.id,
+      tier: "supporter",
+      billing: type,
+      ...(posthogDistinctId ? { posthog_distinct_id: posthogDistinctId } : {}),
+    };
 
     const session = await stripe.checkout.sessions.create({
       mode,
@@ -59,32 +69,20 @@ export async function POST(req) {
 
       // Tie Stripe objects back to your user
       client_reference_id: user.id,
-      metadata: {
-        supabase_user_id: user.id,
-        tier: "supporter",
-        billing: type, // monthly | lifetime
-      },
+      metadata,
 
       // Put metadata onto subscription/payment intent too (helps in webhooks)
       subscription_data:
         mode === "subscription"
           ? {
-              metadata: {
-                supabase_user_id: user.id,
-                tier: "supporter",
-                billing: "monthly",
-              },
+              metadata,
             }
           : undefined,
 
       payment_intent_data:
         mode === "payment"
           ? {
-              metadata: {
-                supabase_user_id: user.id,
-                tier: "supporter",
-                billing: "lifetime",
-              },
+              metadata,
             }
           : undefined,
 

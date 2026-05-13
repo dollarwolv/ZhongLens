@@ -26,6 +26,8 @@ import { sendMessage } from "webext-bridge/popup";
 
 import { Link } from "react-router";
 import { useEffect, useState } from "react";
+import { captureEvent } from "@/lib/posthog";
+import { getOcrAnalyticsProperties } from "@/lib/ocrAnalytics";
 
 function App() {
   const [settings, setSettings] = useState({});
@@ -90,8 +92,24 @@ function App() {
         );
       }
 
-      if (overlayType === "CROP") setCropOverlayOpen(res.mounted);
-      if (overlayType === "OCR") setOCROverlayOpen(res.mounted);
+      if (overlayType === "CROP") {
+        setCropOverlayOpen(res.mounted);
+        void captureEvent("crop_region_selection_opened", {
+          mounted: res.mounted,
+        });
+      }
+      if (overlayType === "OCR") {
+        setOCROverlayOpen(res.mounted);
+        if (res.mounted) {
+          // Track the user's intent before the OCR overlay starts processing.
+          const properties = await getOcrAnalyticsProperties({
+            trigger: "popup",
+            isLoggedIn,
+            isSubscribed,
+          });
+          void captureEvent("ocr_requested", properties);
+        }
+      }
     } catch (err) {
       console.error(err.message);
     }
@@ -132,6 +150,42 @@ function App() {
     }
   }
 
+  async function capturePopupOpened(settingsFromStorage) {
+    // This is a simple page-view style event for the popup, with enough context
+    // to understand what state the user was in when they opened it.
+    let popupIsLoggedIn = false;
+    let popupIsSubscribed = false;
+
+    try {
+      const sessionRes = await sendMessage("AUTH_GET_SESSION", {}, "background");
+      popupIsLoggedIn = Boolean(sessionRes?.session);
+
+      if (popupIsLoggedIn) {
+        const subscriptionRes = await sendMessage(
+          "GET_SUBSCRIPTION_STATUS",
+          { useCached: true },
+          "background",
+        );
+        popupIsSubscribed = Boolean(subscriptionRes?.userSubscribed);
+      }
+    } catch {
+      // Analytics should never block the popup from opening.
+    }
+
+    void captureEvent("popup_opened", {
+      is_logged_in: popupIsLoggedIn,
+      is_subscribed: popupIsSubscribed,
+      crop_enabled: Boolean(settingsFromStorage.crop),
+      cloud_enabled: Boolean(settingsFromStorage.serverProcessingEnabled),
+      cloud_ocr_remaining: getRemainingCloudOcrUses(
+        settingsFromStorage.cloudOcrFreeUseCount,
+      ),
+      has_completed_onboarding: Boolean(
+        settingsFromStorage.hasCompletedOnboarding,
+      ),
+    });
+  }
+
   useEffect(() => {
     (async () => {
       const settingsFromStorage = await chrome.storage.sync.get(null);
@@ -139,6 +193,7 @@ function App() {
       setCloudOcrFreeUseCount(
         Number(settingsFromStorage.cloudOcrFreeUseCount) || 0,
       );
+      void capturePopupOpened(settingsFromStorage);
       getOverlayState("CROP");
       getOverlayState("OCR");
       getLoginStatus();
@@ -226,11 +281,12 @@ function App() {
         {!settings?.hasCompletedOnboarding && (
           <button
             className="text-muted-foreground hover:text-foreground text-xs underline transition-colors"
-            onClick={() =>
+            onClick={() => {
+              void captureEvent("onboarding_opened");
               chrome.tabs.create({
                 url: chrome.runtime.getURL("/onboarding.html"),
-              })
-            }
+              });
+            }}
           >
             New here? Learn how to use ZhongLens
           </button>
@@ -241,7 +297,9 @@ function App() {
               <button
                 className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
                 onClick={() => {
-                  setSettings({ ...settings, crop: !settings.crop });
+                  const newCrop = !settings.crop;
+                  setSettings({ ...settings, crop: newCrop });
+                  void captureEvent("crop_mode_toggled", { enabled: newCrop });
                   toast.success(
                     `${settings.crop ? "Now using fullscreen mode." : "Now using crop mode."}`,
                     {
@@ -267,16 +325,20 @@ function App() {
               <button
                 className="relative flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
                 onClick={() => {
+                  const newEnabled = !settings.serverProcessingEnabled;
                   setSettings({
                     ...settings,
-                    serverProcessingEnabled: !settings.serverProcessingEnabled,
+                    serverProcessingEnabled: newEnabled,
                   });
-                  settings.serverProcessingEnabled
-                    ? toast.error("Cloud OCR is now off.", {
+                  void captureEvent("cloud_ocr_toggled", {
+                    enabled: newEnabled,
+                  });
+                  newEnabled
+                    ? toast.success("Cloud OCR is now active.", {
                         position: "top-center",
                         duration: 1500,
                       })
-                    : toast.success("Cloud OCR is now active.", {
+                    : toast.error("Cloud OCR is now off.", {
                         position: "top-center",
                         duration: 1500,
                       });

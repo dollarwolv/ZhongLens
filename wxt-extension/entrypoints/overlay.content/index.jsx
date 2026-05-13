@@ -2,6 +2,42 @@ import ReactDOM from "react-dom/client";
 import Overlay from "./Overlay";
 import "~/assets/tailwind.content.css";
 import { registerOverlayShortcuts } from "../../lib/shortcuts";
+import { captureEvent } from "@/lib/posthog";
+import { getOcrAnalyticsProperties } from "@/lib/ocrAnalytics";
+import { sendMessage } from "webext-bridge/content-script";
+
+async function getUserAnalyticsStatus() {
+  // The shortcut runs in the page content script, so it asks the background
+  // worker for the same auth/subscription state the popup already knows.
+  const sessionRes = await sendMessage("AUTH_GET_SESSION", {}, "background");
+  const isLoggedIn = Boolean(sessionRes?.session);
+  let isSubscribed = false;
+
+  if (isLoggedIn) {
+    const subscriptionRes = await sendMessage(
+      "GET_SUBSCRIPTION_STATUS",
+      { useCached: true },
+      "background",
+    );
+    isSubscribed = Boolean(subscriptionRes?.userSubscribed);
+  }
+
+  return { isLoggedIn, isSubscribed };
+}
+
+async function captureOcrRequestedFromShortcut() {
+  try {
+    const userStatus = await getUserAnalyticsStatus();
+    const properties = await getOcrAnalyticsProperties({
+      trigger: "shortcut",
+      ...userStatus,
+    });
+    await captureEvent("ocr_requested", properties);
+  } catch (error) {
+    // Analytics should never break the shortcut itself.
+    console.warn("Failed to capture ocr_requested from shortcut:", error);
+  }
+}
 
 export default defineContentScript({
   matches: ["<all_urls>"],
@@ -31,7 +67,10 @@ export default defineContentScript({
       openFallback: ["ctrl", "o"],
       closeFallback: ["ctrl", "l"],
       onOpen: () => {
-        if (!ui.mounted) ui.mount();
+        if (!ui.mounted) {
+          ui.mount();
+          void captureOcrRequestedFromShortcut();
+        }
       },
       onClose: () => {
         ui.remove();

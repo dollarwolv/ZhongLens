@@ -79,16 +79,18 @@ export async function getSubscriptionStatus({ useCached = true } = {}) {
 export function initPaymentHandlers() {
   onMessage(
     "STRIPE_START_CHECKOUT_SESSION",
-    async ({ data: { type, accessToken } }) => {
+    async ({ data: { type, accessToken, posthogDistinctId } }) => {
       try {
         console.log("access token: " + accessToken);
         const res = await fetch(`${YOUR_DOMAIN}/api/stripe/checkout`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             type,
+            posthogDistinctId,
           }),
         });
         const body = await res.json();
