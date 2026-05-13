@@ -30,13 +30,39 @@ async function getDistinctId() {
   return anonInstallId;
 }
 
+// this function checks whether the extension context is a dev server or a normally installed extension.
+async function getExtensionContext() {
+  let installType = "unknown";
+
+  try {
+    if (chrome.management?.getSelf) {
+      const self = await chrome.management.getSelf();
+      installType = self.installType;
+    }
+  } catch {
+    // Leave analytics non-blocking.
+  }
+
+  return {
+    extension_origin: globalThis.location?.origin,
+    extension_install_type: installType,
+    is_unpacked_extension: installType === "development",
+  };
+}
+
 async function sendEvent(event, properties = {}, distinctId) {
   // PostHog's capture API needs three things: api_key, event, and distinct_id.
+
+  const propertiesWithContext = {
+    ...properties,
+    ...(await getExtensionContext()),
+  };
+
   const body = {
     api_key: POSTHOG_KEY,
     event,
     distinct_id: distinctId || (await getDistinctId()),
-    properties,
+    properties: propertiesWithContext,
   };
 
   const response = await fetch(POSTHOG_CAPTURE_URL, {
