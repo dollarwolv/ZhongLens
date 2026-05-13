@@ -4,7 +4,11 @@ import "~/assets/tailwind.content.css";
 import { Checkbox } from "@/components/ui/checkbox";
 import { sendMessage } from "webext-bridge/content-script";
 import { captureEvent } from "@/lib/posthog";
-import { getRemainingCloudOcrUses } from "@/lib/cloudOcr";
+import {
+  getOcrAnalyticsProperties,
+  getOcrFailureCode,
+  NO_TEXT_FOUND_ERROR,
+} from "@/lib/ocrAnalytics";
 
 export default ({ onClose }) => {
   const [loading, setLoading] = useState(false);
@@ -33,6 +37,19 @@ export default ({ onClose }) => {
     setStatus("Processing image...");
     const res = await sendMessage("CAPTURE_TAB", { cssW, cssH }, "background");
     if (!res.ok) {
+      const fullErrorCode = res?.error || "OCR failed.";
+      const eventProperties = await getOcrAnalyticsProperties({
+        response: res,
+      });
+      void captureEvent("ocr_failed", {
+        ...eventProperties,
+        duration_ms: Math.round(performance.now() - startedAt),
+        error_code: getOcrFailureCode(
+          fullErrorCode,
+          eventProperties.processing_mode,
+        ),
+        full_error_code: fullErrorCode,
+      });
       setError(res?.error);
       setLoading(false);
       return;
@@ -77,19 +94,25 @@ export default ({ onClose }) => {
       processing_mode: mode,
       crop_enabled: Boolean(res?.crop),
     });
-    const { cloudOcrFreeUseCount } = await chrome.storage.sync.get(
-      "cloudOcrFreeUseCount",
-    );
+
+    const eventProperties = await getOcrAnalyticsProperties({ response: res });
+    if (data.length === 0) {
+      void captureEvent("ocr_failed", {
+        ...eventProperties,
+        duration_ms: Math.round(performance.now() - startedAt),
+        error_code: "no_text_found",
+        full_error_code: NO_TEXT_FOUND_ERROR,
+      });
+      setError(NO_TEXT_FOUND_ERROR);
+      setLoading(false);
+      return;
+    }
+
     void captureEvent("ocr_completed", {
-      processing_mode: mode,
-      crop_enabled: Boolean(res?.crop),
+      ...eventProperties,
       duration_ms: Math.round(performance.now() - startedAt),
       text_blocks_count: data.length,
-      cloud_ocr_remaining: getRemainingCloudOcrUses(cloudOcrFreeUseCount),
     });
-    if (data.length === 0) {
-      setError("No text found. Please try again.");
-    }
     setStartX(res?.startX);
     setStartY(res?.startY);
     setScalingFactor(res?.scalingFactor);
