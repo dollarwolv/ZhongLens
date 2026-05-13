@@ -37,7 +37,7 @@ export function initGeneralHandlers() {
       cropYStart: 0,
       cropXEnd: undefined,
       cropYEnd: undefined,
-      serverProcessingEnabled: false,
+      serverProcessingEnabled: true,
       devSettingsEnabled: false,
       ocrSpeed: 2,
       maxDim: 800,
