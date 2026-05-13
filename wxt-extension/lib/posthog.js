@@ -4,6 +4,7 @@ const POSTHOG_HOST = import.meta.env.VITE_PUBLIC_POSTHOG_HOST;
 const POSTHOG_CAPTURE_URL = `${POSTHOG_HOST}/i/v0/e/`;
 const POSTHOG_USER_ID_STORAGE_KEY = "posthogUserId";
 const ANON_INSTALL_ID_STORAGE_KEY = "anonInstallId";
+const EXTENSION_INSTALL_TYPE = import.meta.env.DEV ? "development" : "normal";
 
 export async function getAnalyticsDistinctId() {
   // If the user has logged in, use their email as the PostHog distinct_id.
@@ -30,23 +31,11 @@ export async function getAnalyticsDistinctId() {
   return anonInstallId;
 }
 
-// this function checks whether the extension context is a dev server or a normally installed extension.
-async function getExtensionContext() {
-  let installType = "unknown";
-
-  try {
-    if (chrome.management?.getSelf) {
-      const self = await chrome.management.getSelf();
-      installType = self.installType;
-    }
-  } catch {
-    // Leave analytics non-blocking.
-  }
-
+function getExtensionContext() {
   return {
-    extension_origin: globalThis.location?.origin,
-    extension_install_type: installType,
-    is_unpacked_extension: installType === "development",
+    extension_origin: chrome.runtime.getURL("").slice(0, -1),
+    extension_install_type: EXTENSION_INSTALL_TYPE,
+    is_unpacked_extension: EXTENSION_INSTALL_TYPE === "development",
   };
 }
 
@@ -55,7 +44,7 @@ async function sendEvent(event, properties = {}, distinctId) {
 
   const propertiesWithContext = {
     ...properties,
-    ...(await getExtensionContext()),
+    ...getExtensionContext(),
   };
 
   const body = {
