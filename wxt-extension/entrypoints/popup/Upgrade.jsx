@@ -63,6 +63,9 @@ function Upgrade() {
   useEffect(() => {
     let mounted = true;
 
+    // Simple page-view style event for the upgrade screen.
+    void captureEvent("upgrade_viewed");
+
     async function loadUpgradeCopy() {
       try {
         const content = await getCopywritingSection("upgrade");
