@@ -27,6 +27,7 @@ import { sendMessage } from "webext-bridge/popup";
 import { Link } from "react-router";
 import { useEffect, useState } from "react";
 import { captureEvent } from "@/lib/posthog";
+import { getOcrAnalyticsProperties } from "@/lib/ocrAnalytics";
 
 function App() {
   const [settings, setSettings] = useState({});
@@ -99,6 +100,15 @@ function App() {
       }
       if (overlayType === "OCR") {
         setOCROverlayOpen(res.mounted);
+        if (res.mounted) {
+          // Track the user's intent before the OCR overlay starts processing.
+          const properties = await getOcrAnalyticsProperties({
+            trigger: "popup",
+            isLoggedIn,
+            isSubscribed,
+          });
+          void captureEvent("ocr_requested", properties);
+        }
       }
     } catch (err) {
       console.error(err.message);

@@ -37,11 +37,6 @@ export default ({ onClose }) => {
     const resultData = res?.result;
     const mode = res?.mode;
 
-    void captureEvent("ocr_started", {
-      processing_mode: mode,
-      crop_enabled: res?.crop,
-    });
-
     let data = [];
 
     if (mode === "server_ocr") {
@@ -72,6 +67,12 @@ export default ({ onClose }) => {
     }
 
     setData(data);
+    // This event means OCR work actually started and returned a response.
+    // Keep these property names aligned with ocr_requested for easy comparison.
+    void captureEvent("ocr_started", {
+      processing_mode: mode,
+      crop_enabled: Boolean(res?.crop),
+    });
     if (data.length === 0) {
       setError("No text found. Please try again.");
     }
