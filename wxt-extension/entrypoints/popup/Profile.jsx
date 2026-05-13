@@ -396,8 +396,13 @@ function Profile() {
             </Button>
           ) : (
             <Button>
-              <CircleArrowUp color="white" />
-              Upgrade to Supporter
+              <Link
+                to={"/upgrade"}
+                className="flex flex-row items-center justify-center gap-2"
+              >
+                <CircleArrowUp color="white" />
+                Upgrade to Supporter
+              </Link>
             </Button>
           )}
         </ItemGroup>
