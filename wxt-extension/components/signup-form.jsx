@@ -18,6 +18,8 @@ import { Input } from "@/components/ui/input";
 import { Link } from "react-router";
 import { sendMessage } from "webext-bridge/popup";
 import { useNavigate } from "react-router";
+import { captureEvent, identifyUser } from "@/lib/posthog";
+import { useState } from "react";
 
 export function SignupForm({ ...props }) {
   const [email, setEmail] = useState("");
@@ -44,9 +46,17 @@ export function SignupForm({ ...props }) {
       console.log(res?.error);
     } else if (!res?.session) {
       setErrors([]);
+      await identifyUser(email, { email });
+      await captureEvent("user_signed_up", {
+        email_confirmation_required: true,
+      });
       setEmailSent(true);
     } else {
       setErrors([]);
+      await identifyUser(email, { email });
+      await captureEvent("user_signed_up", {
+        email_confirmation_required: false,
+      });
       navigate("/");
     }
     setLoading(false);

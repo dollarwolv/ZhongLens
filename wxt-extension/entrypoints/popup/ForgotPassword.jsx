@@ -18,6 +18,7 @@ import { ArrowLeft } from "lucide-react";
 import { sendMessage } from "webext-bridge/popup";
 import { Spinner } from "@/components/ui/spinner";
 import { useState } from "react";
+import { captureEvent } from "@/lib/posthog";
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -37,6 +38,7 @@ function ForgotPassword() {
 
     if (res.error) setErrors([res.error]);
     else {
+      await captureEvent("password_reset_requested");
       setEmailSent(true);
       setLoading(false);
     }

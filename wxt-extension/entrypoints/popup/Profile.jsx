@@ -24,6 +24,7 @@ import { Spinner } from "../../components/ui/spinner";
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { sendMessage } from "webext-bridge/popup";
+import { captureEvent, resetAnalytics } from "@/lib/posthog";
 import {
   CLOUD_OCR_FREE_LIMIT,
   getCloudOcrUsagePercent,
@@ -70,6 +71,7 @@ function Profile() {
         setEmail(updatedEmail);
         setUpdateEmail(false);
         setEmailConfirmationSent(true);
+        void captureEvent("email_updated");
       }
     }
     setUpdatedEmail("");
@@ -94,6 +96,7 @@ function Profile() {
       } else {
         setUpdatePassword(false);
         setPasswordUpdated(true);
+        void captureEvent("password_updated");
       }
     }
     setUpdatedPassword("");
@@ -147,6 +150,7 @@ function Profile() {
     if (!res.ok) {
       setError(res.error);
     } else {
+      void captureEvent("customer_portal_opened");
       chrome.tabs.create({ url: res.stripeUrl });
     }
 
@@ -181,7 +185,9 @@ function Profile() {
     const handleStorageChange = (changes, areaName) => {
       if (areaName !== "sync" || !changes.cloudOcrFreeUseCount) return;
 
-      setCloudOcrFreeUseCount(Number(changes.cloudOcrFreeUseCount.newValue) || 0);
+      setCloudOcrFreeUseCount(
+        Number(changes.cloudOcrFreeUseCount.newValue) || 0,
+      );
     };
 
     chrome.storage.onChanged.addListener(handleStorageChange);
@@ -312,7 +318,11 @@ function Profile() {
               e.preventDefault();
               const res = await sendMessage("AUTH_SIGN_OUT", {}, "background");
               if (res.error) setError(res.error);
-              else navigate("/");
+              else {
+                await captureEvent("user_signed_out");
+                await resetAnalytics();
+                navigate("/");
+              }
             }}
           >
             <LogOut />

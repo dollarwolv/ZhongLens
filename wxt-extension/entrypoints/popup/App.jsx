@@ -26,6 +26,7 @@ import { sendMessage } from "webext-bridge/popup";
 
 import { Link } from "react-router";
 import { useEffect, useState } from "react";
+import { captureEvent } from "@/lib/posthog";
 
 function App() {
   const [settings, setSettings] = useState({});
@@ -90,8 +91,16 @@ function App() {
         );
       }
 
-      if (overlayType === "CROP") setCropOverlayOpen(res.mounted);
-      if (overlayType === "OCR") setOCROverlayOpen(res.mounted);
+      if (overlayType === "CROP") {
+        setCropOverlayOpen(res.mounted);
+        void captureEvent("crop_region_selection_opened", {
+          mounted: res.mounted,
+        });
+      }
+      if (overlayType === "OCR") {
+        setOCROverlayOpen(res.mounted);
+        void captureEvent("ocr_overlay_toggled", { mounted: res.mounted });
+      }
     } catch (err) {
       console.error(err.message);
     }
@@ -226,11 +235,12 @@ function App() {
         {!settings?.hasCompletedOnboarding && (
           <button
             className="text-muted-foreground hover:text-foreground text-xs underline transition-colors"
-            onClick={() =>
+            onClick={() => {
+              void captureEvent("onboarding_opened");
               chrome.tabs.create({
                 url: chrome.runtime.getURL("/onboarding.html"),
-              })
-            }
+              });
+            }}
           >
             New here? Learn how to use ZhongLens
           </button>
@@ -241,7 +251,9 @@ function App() {
               <button
                 className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
                 onClick={() => {
-                  setSettings({ ...settings, crop: !settings.crop });
+                  const newCrop = !settings.crop;
+                  setSettings({ ...settings, crop: newCrop });
+                  void captureEvent("crop_mode_toggled", { enabled: newCrop });
                   toast.success(
                     `${settings.crop ? "Now using fullscreen mode." : "Now using crop mode."}`,
                     {
@@ -267,16 +279,20 @@ function App() {
               <button
                 className="relative flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
                 onClick={() => {
+                  const newEnabled = !settings.serverProcessingEnabled;
                   setSettings({
                     ...settings,
-                    serverProcessingEnabled: !settings.serverProcessingEnabled,
+                    serverProcessingEnabled: newEnabled,
                   });
-                  settings.serverProcessingEnabled
-                    ? toast.error("Cloud OCR is now off.", {
+                  void captureEvent("cloud_ocr_toggled", {
+                    enabled: newEnabled,
+                  });
+                  newEnabled
+                    ? toast.success("Cloud OCR is now active.", {
                         position: "top-center",
                         duration: 1500,
                       })
-                    : toast.success("Cloud OCR is now active.", {
+                    : toast.error("Cloud OCR is now off.", {
                         position: "top-center",
                         duration: 1500,
                       });

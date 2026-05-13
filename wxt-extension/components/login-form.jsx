@@ -19,6 +19,8 @@ import { Spinner } from "./ui/spinner";
 import { Link } from "react-router";
 import { sendMessage } from "webext-bridge/popup";
 import { useNavigate } from "react-router";
+import { captureEvent, identifyUser } from "@/lib/posthog";
+import { useState } from "react";
 
 export function LoginForm({ className, ...props }) {
   const [email, setEmail] = useState("");
@@ -40,6 +42,8 @@ export function LoginForm({ className, ...props }) {
       console.log(res?.error);
     } else {
       setErrors([]);
+      await identifyUser(email, { email });
+      await captureEvent("user_signed_in");
       await sendMessage(
         "GET_SUBSCRIPTION_STATUS",
         { useCached: false },
@@ -103,7 +107,7 @@ export function LoginForm({ className, ...props }) {
                 <Button
                   type="submit"
                   onClick={async (e) => {
-                    e.preventDefault;
+                    e.preventDefault();
                     await signInWithEmail();
                   }}
                 >
