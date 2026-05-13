@@ -4,6 +4,7 @@ import "~/assets/tailwind.content.css";
 import { Checkbox } from "@/components/ui/checkbox";
 import { sendMessage } from "webext-bridge/content-script";
 import { captureEvent } from "@/lib/posthog";
+import { getRemainingCloudOcrUses } from "@/lib/cloudOcr";
 
 export default ({ onClose }) => {
   const [loading, setLoading] = useState(false);
@@ -24,6 +25,9 @@ export default ({ onClose }) => {
   }
 
   async function screenshot() {
+    // Start timing before the screenshot request so duration_ms covers the
+    // whole OCR wait from the user's point of view.
+    const startedAt = performance.now();
     setLoading(true);
     const { cssW, cssH } = getViewportCssSize();
     setStatus("Processing image...");
@@ -72,6 +76,16 @@ export default ({ onClose }) => {
     void captureEvent("ocr_started", {
       processing_mode: mode,
       crop_enabled: Boolean(res?.crop),
+    });
+    const { cloudOcrFreeUseCount } = await chrome.storage.sync.get(
+      "cloudOcrFreeUseCount",
+    );
+    void captureEvent("ocr_completed", {
+      processing_mode: mode,
+      crop_enabled: Boolean(res?.crop),
+      duration_ms: Math.round(performance.now() - startedAt),
+      text_blocks_count: data.length,
+      cloud_ocr_remaining: getRemainingCloudOcrUses(cloudOcrFreeUseCount),
     });
     if (data.length === 0) {
       setError("No text found. Please try again.");
