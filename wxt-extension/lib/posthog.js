@@ -89,12 +89,26 @@ export async function captureEvent(event, properties) {
 }
 
 export async function identifyUser(userId, properties = {}) {
+  const storedIds = await chrome.storage.sync.get([
+    ANON_INSTALL_ID_STORAGE_KEY,
+  ]);
+  const anonInstallId = storedIds[ANON_INSTALL_ID_STORAGE_KEY];
+
   // Save the logged-in ID so future events are attached to this user.
   await chrome.storage.sync.set({ [POSTHOG_USER_ID_STORAGE_KEY]: userId });
 
-  // "$identify" is PostHog's special event for setting user properties.
+  // "$identify" links the previous anonymous install ID to this logged-in ID.
   try {
-    await sendEvent("$identify", { $set: properties }, userId);
+    await sendEvent(
+      "$identify",
+      {
+        ...(anonInstallId && anonInstallId !== userId
+          ? { $anon_distinct_id: anonInstallId }
+          : {}),
+        $set: properties,
+      },
+      userId,
+    );
   } catch (error) {
     // Login should still succeed even if the identify event fails.
     console.warn("[posthog] identify failed", error);
