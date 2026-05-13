@@ -3,6 +3,7 @@ import ChildText from "./ChildText";
 import "~/assets/tailwind.content.css";
 import { Checkbox } from "@/components/ui/checkbox";
 import { sendMessage } from "webext-bridge/content-script";
+import { captureEvent } from "@/lib/posthog";
 
 export default ({ onClose }) => {
   const [loading, setLoading] = useState(false);
@@ -35,6 +36,11 @@ export default ({ onClose }) => {
     setStatus("Untangling response...");
     const resultData = res?.result;
     const mode = res?.mode;
+
+    void captureEvent("ocr_started", {
+      processing_mode: mode,
+      crop_enabled: res?.crop,
+    });
 
     let data = [];
 

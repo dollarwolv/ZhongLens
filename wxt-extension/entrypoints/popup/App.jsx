@@ -99,7 +99,6 @@ function App() {
       }
       if (overlayType === "OCR") {
         setOCROverlayOpen(res.mounted);
-        void captureEvent("ocr_overlay_toggled", { mounted: res.mounted });
       }
     } catch (err) {
       console.error(err.message);

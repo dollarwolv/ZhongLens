@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { getCopywritingSection } from "@/lib/copywriting";
+import { captureEvent } from "@/lib/posthog";
 
 export default function App() {
   const [step, setStep] = useState(0);
@@ -42,6 +43,7 @@ export default function App() {
 
   const finishOnboarding = async () => {
     await chrome.storage.sync.set({ hasCompletedOnboarding: true });
+    void captureEvent("onboarding_completed");
     window.close();
   };
 

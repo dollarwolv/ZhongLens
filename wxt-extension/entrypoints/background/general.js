@@ -1,4 +1,5 @@
 import { syncCloudOcrFreeUseCount } from "./cloudOcrUsage";
+import { captureEvent } from "../../lib/posthog";
 
 async function ensureInstallTrackingState({ syncUsage = false } = {}) {
   const syncStorage = await chrome.storage.sync.get([
@@ -70,5 +71,7 @@ export function initGeneralHandlers() {
     await chrome.tabs.create({
       url: chrome.runtime.getURL("/onboarding.html"),
     });
+
+    void captureEvent("installed");
   });
 }
