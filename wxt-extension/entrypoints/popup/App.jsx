@@ -1,6 +1,5 @@
 import {
   Crop,
-  Camera,
   Cloud,
   Settings,
   CircleUser,
@@ -8,14 +7,12 @@ import {
   CircleArrowUp,
   Fullscreen,
   LogIn,
-  HandFist,
   CircleHelp,
+  X,
 } from "lucide-react";
 import zhongLensIcon from "@/assets/icon_zi_full.png";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Field, FieldLabel } from "@/components/ui/field";
 import {
   Tooltip,
   TooltipContent,
@@ -157,7 +154,11 @@ function App() {
     let popupIsSubscribed = false;
 
     try {
-      const sessionRes = await sendMessage("AUTH_GET_SESSION", {}, "background");
+      const sessionRes = await sendMessage(
+        "AUTH_GET_SESSION",
+        {},
+        "background",
+      );
       popupIsLoggedIn = Boolean(sessionRes?.session);
 
       if (popupIsLoggedIn) {
@@ -244,9 +245,44 @@ function App() {
   }, [isLoggedIn]);
 
   const cloudOcrRemainingCount = getRemainingCloudOcrUses(cloudOcrFreeUseCount);
+  const cropModeEnabled = Boolean(settings.crop);
+  const cloudOcrEnabled = Boolean(settings.serverProcessingEnabled);
+
+  function toggleCropMode() {
+    const newCrop = !cropModeEnabled;
+    setSettings({ ...settings, crop: newCrop });
+    void captureEvent("crop_mode_toggled", { enabled: newCrop });
+    toast.success(
+      `${cropModeEnabled ? "Now using fullscreen mode." : "Now using crop mode."}`,
+      {
+        position: "top-center",
+        duration: 1500,
+      },
+    );
+  }
+
+  function toggleCloudOcrMode() {
+    const newEnabled = !cloudOcrEnabled;
+    setSettings({
+      ...settings,
+      serverProcessingEnabled: newEnabled,
+    });
+    void captureEvent("cloud_ocr_toggled", {
+      enabled: newEnabled,
+    });
+    newEnabled
+      ? toast.success("Cloud OCR on.", {
+          position: "top-center",
+          duration: 1500,
+        })
+      : toast.error("Cloud OCR off - using Local OCR.", {
+          position: "top-center",
+          duration: 1500,
+        });
+  }
 
   return (
-    <div className="relative flex w-80 flex-col items-center gap-3 p-4">
+    <div className="relative flex w-86 flex-col items-center gap-3 p-4">
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
@@ -291,75 +327,92 @@ function App() {
             New here? Learn how to use ZhongLens
           </button>
         )}
-        <div className="flex flex-row gap-2.5">
+        <div className="flex flex-row items-center justify-center gap-1.5">
           <Tooltip>
-            <TooltipTrigger>
+            <TooltipTrigger asChild>
               <button
-                className="flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
-                onClick={() => {
-                  const newCrop = !settings.crop;
-                  setSettings({ ...settings, crop: newCrop });
-                  void captureEvent("crop_mode_toggled", { enabled: newCrop });
-                  toast.success(
-                    `${settings.crop ? "Now using fullscreen mode." : "Now using crop mode."}`,
-                    {
-                      position: "top-center",
-                      duration: 1500,
-                    },
-                  );
-                }}
+                type="button"
+                role="switch"
+                aria-checked={cropModeEnabled}
+                aria-label={
+                  cropModeEnabled
+                    ? "Crop mode is enabled"
+                    : "Fullscreen mode is enabled"
+                }
+                className="relative flex cursor-pointer flex-col items-center justify-center rounded p-1.5 transition-shadow hover:shadow"
+                onClick={toggleCropMode}
               >
-                {settings.crop ? <Crop /> : <Fullscreen />}
-                <span className="text-sm">
-                  {settings.crop ? "Crop" : "Fullscreen"}
+                <span
+                  className={`relative flex h-6 w-12 items-center rounded-full border px-1 text-[10px] font-medium transition-colors ${
+                    cropModeEnabled
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-input bg-muted text-muted-foreground"
+                  }`}
+                >
+                  <span
+                    className={`bg-background text-foreground absolute top-0 flex size-5.5 items-center justify-center rounded-full shadow transition-[left] ${
+                      cropModeEnabled ? "left-[calc(100%-1.375rem)]" : "left-0"
+                    }`}
+                  >
+                    {cropModeEnabled ? (
+                      <Crop className="size-4" />
+                    ) : (
+                      <X className="size-4" />
+                    )}
+                  </span>
                 </span>
+                <span className="text-sm">Crop Mode</span>
               </button>
             </TooltipTrigger>
             <TooltipContent className="flex flex-col items-center">
               <p>Crop to text location for</p>
               <p>better speed and accuracy.</p>
+              <p>
+                {cropModeEnabled
+                  ? "Click to switch back to fullscreen mode."
+                  : "Currently in fullscreen mode."}
+              </p>
             </TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                className="relative flex cursor-pointer flex-col items-center justify-center rounded p-2 transition-shadow hover:shadow"
-                onClick={() => {
-                  const newEnabled = !settings.serverProcessingEnabled;
-                  setSettings({
-                    ...settings,
-                    serverProcessingEnabled: newEnabled,
-                  });
-                  void captureEvent("cloud_ocr_toggled", {
-                    enabled: newEnabled,
-                  });
-                  newEnabled
-                    ? toast.success("Cloud OCR is now active.", {
-                        position: "top-center",
-                        duration: 1500,
-                      })
-                    : toast.error("Cloud OCR is now off.", {
-                        position: "top-center",
-                        duration: 1500,
-                      });
-                }}
+                type="button"
+                role="switch"
+                aria-checked={cloudOcrEnabled}
+                aria-label={
+                  cloudOcrEnabled
+                    ? "Cloud OCR is enabled"
+                    : "Local OCR is enabled"
+                }
+                className="relative flex cursor-pointer flex-col items-center justify-center rounded p-1.5 transition-shadow hover:shadow"
+                onClick={toggleCloudOcrMode}
               >
-                {!isSubscribed && settings.serverProcessingEnabled && (
-                  <span className="pointer-events-none absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-black px-1 text-[10px] font-semibold text-white shadow">
+                {!isSubscribed && cloudOcrEnabled && (
+                  <span className="pointer-events-none absolute -top-1 -right-1 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-black px-1 text-[10px] font-semibold text-white shadow">
                     {cloudOcrRemainingCount}
                   </span>
                 )}
-                {settings.serverProcessingEnabled ? (
-                  <>
-                    <Cloud />
-                    <span className="text-sm">Cloud</span>
-                  </>
-                ) : (
-                  <>
-                    <CloudOff />
-                    <span className="text-sm">Local</span>
-                  </>
-                )}
+                <span
+                  className={`relative flex h-6 w-12 items-center rounded-full border px-1 text-[10px] font-medium transition-colors ${
+                    cloudOcrEnabled
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-input bg-muted text-muted-foreground"
+                  }`}
+                >
+                  <span
+                    className={`bg-background text-foreground absolute top-0 flex size-5.5 items-center justify-center rounded-full shadow transition-[left] ${
+                      cloudOcrEnabled ? "left-[calc(100%-1.375rem)]" : "left-0"
+                    }`}
+                  >
+                    {cloudOcrEnabled ? (
+                      <Cloud className="size-4" />
+                    ) : (
+                      <CloudOff className="size-4" />
+                    )}
+                  </span>
+                </span>
+                <span className="text-sm">Cloud OCR</span>
               </button>
             </TooltipTrigger>
             <TooltipContent className="flex flex-col items-center">
@@ -400,11 +453,13 @@ function App() {
             </Link>
           )}
         </div>
-        {settings.crop && (
+        {cropModeEnabled && (
           <div className="flex flex-col justify-center gap-2">
-            <span className="text-xs font-extralight">
-              Currently cropping to:{" "}
-              {`(${cropDims.cropXStart} | ${cropDims.cropYStart}), (${cropDims.cropYEnd} | ${cropDims.cropYEnd})`}
+            <span className="text-center text-xs font-extralight">
+              {Object.values(cropDims).some((value) => value === undefined)
+                ? "You haven't selected a region to crop to yet. Use the button below to select it."
+                : "Currently cropping to: " +
+                  `(${cropDims.cropXStart} | ${cropDims.cropYStart}), (${cropDims.cropYEnd} | ${cropDims.cropYEnd})`}
             </span>
             <Button
               size={"xs"}
