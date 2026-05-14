@@ -422,7 +422,11 @@ function App() {
                 <p>Supporter: unlimited cloud OCR scans</p>
               ) : (
                 <>
-                  <p>{cloudOcrRemainingCount} free cloud scans remaining</p>
+                  <p>
+                    {cloudOcrEnabled
+                      ? cloudOcrRemainingCount + " free cloud scans remaining"
+                      : "Currently using Local OCR."}
+                  </p>
                 </>
               )}
             </TooltipContent>
