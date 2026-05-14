@@ -1,7 +1,4 @@
 import { useState, useEffect } from "react";
-import ChildText from "./ChildText";
-import "~/assets/tailwind.content.css";
-import { Checkbox } from "@/components/ui/checkbox";
 import { sendMessage } from "webext-bridge/content-script";
 import { captureEvent } from "@/lib/posthog";
 import {
@@ -9,6 +6,10 @@ import {
   getOcrFailureCode,
   NO_TEXT_FOUND_ERROR,
 } from "@/lib/ocrAnalytics";
+import {
+  removeLightDomTextLayer,
+  renderLightDomTextLayer,
+} from "./lightDomTextLayer";
 
 export default ({ onClose }) => {
   const [loading, setLoading] = useState(false);
@@ -51,6 +52,8 @@ export default ({ onClose }) => {
         full_error_code: fullErrorCode,
       });
       setError(res?.error);
+      setData([]);
+      removeLightDomTextLayer();
       setLoading(false);
       return;
     }
@@ -67,7 +70,7 @@ export default ({ onClose }) => {
     } else if (mode === "local_ocr") {
       data = resultData
         .filter((item) => item.confidence > 50)
-        .map((item, index) => {
+        .map((item) => {
           const bbox = item.bbox;
           const fullBoundingBox = [
             [bbox.x0, bbox.y0],
@@ -87,7 +90,6 @@ export default ({ onClose }) => {
         });
     }
 
-    setData(data);
     // This event means OCR work actually started and returned a response.
     // Keep these property names aligned with ocr_requested for easy comparison.
     void captureEvent("ocr_started", {
@@ -104,6 +106,8 @@ export default ({ onClose }) => {
         full_error_code: NO_TEXT_FOUND_ERROR,
       });
       setError(NO_TEXT_FOUND_ERROR);
+      setData([]);
+      removeLightDomTextLayer();
       setLoading(false);
       return;
     }
@@ -117,6 +121,7 @@ export default ({ onClose }) => {
     setStartY(res?.startY);
     setScalingFactor(res?.scalingFactor);
     setCrop(res?.crop);
+    setData(data);
     setLoading(false);
   }
 
@@ -131,17 +136,32 @@ export default ({ onClose }) => {
   useEffect(() => {
     getMode();
     screenshot();
+
+    return () => {
+      removeLightDomTextLayer();
+    };
   }, []);
 
   useEffect(() => {
-    console.log(data);
-    console.log("data logged in useeffect");
-    console.log("startX: " + startX);
-    console.log("startY: " + startY);
-  }, [data]);
+    if (error || data.length === 0) {
+      removeLightDomTextLayer();
+      return;
+    }
+
+    void renderLightDomTextLayer({
+      data,
+      scalingFactor,
+      crop,
+      startX,
+      startY,
+    });
+  }, [data, scalingFactor, crop, startX, startY, error]);
 
   return (
-    <div className="font-noto pointer-events-none fixed top-0 left-0 z-9999 h-screen w-screen">
+    <div
+      className="font-noto pointer-events-none fixed top-0 left-0 h-screen w-screen"
+      style={{ zIndex: 2147483647 }}
+    >
       <button
         type="button"
         aria-label="Close overlay"
@@ -187,18 +207,6 @@ export default ({ onClose }) => {
           <span>{error}</span>
         </div>
       )}
-      {data.map((entry, index) => {
-        return (
-          <ChildText
-            entry={entry}
-            key={index}
-            scalingFactor={scalingFactor}
-            crop={crop}
-            startX={startX}
-            startY={startY}
-          />
-        );
-      })}
     </div>
   );
 };

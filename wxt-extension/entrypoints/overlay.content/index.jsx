@@ -1,6 +1,6 @@
 import ReactDOM from "react-dom/client";
 import Overlay from "./Overlay";
-import "~/assets/tailwind.content.css";
+import "~/assets/tailwind.app.css";
 import { registerOverlayShortcuts } from "../../lib/shortcuts";
 import { captureEvent } from "@/lib/posthog";
 import { getOcrAnalyticsProperties } from "@/lib/ocrAnalytics";
@@ -41,12 +41,17 @@ async function captureOcrRequestedFromShortcut() {
 
 export default defineContentScript({
   matches: ["<all_urls>"],
+  cssInjectionMode: "ui",
   async main(ctx) {
-    const ui = await createIntegratedUi(ctx, {
+    const ui = await createShadowRootUi(ctx, {
+      name: "zhonglens-ocr-overlay",
       position: "fixed",
       anchor: "body",
       onMount: (container) => {
-        const root = ReactDOM.createRoot(container);
+        const app = document.createElement("div");
+        container.append(app);
+
+        const root = ReactDOM.createRoot(app);
         root.render(
           <Overlay
             onClose={() => {
