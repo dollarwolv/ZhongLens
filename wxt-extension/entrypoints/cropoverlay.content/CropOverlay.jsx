@@ -70,7 +70,7 @@ export default ({ onClose }) => {
   }, []);
 
   return (
-    <div className="bg-white-10 font-noto pointer-events-none fixed top-0 left-0 z-999 h-screen w-screen">
+    <div className="bg-white-10 font-noto pointer-events-none fixed top-0 left-0 h-screen w-screen">
       <div className="absolute top-1/20 left-1/2 flex -translate-x-1/2 flex-col items-center justify-center gap-4">
         <span className="text-neon-green/70 text-sm">
           Cropping is currently {crop ? "enabled" : "disabled"}.
