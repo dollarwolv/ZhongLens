@@ -389,7 +389,7 @@ function App() {
                 onClick={toggleCloudOcrMode}
               >
                 {!isSubscribed && cloudOcrEnabled && (
-                  <span className="pointer-events-none absolute -top-1 -right-1 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-black px-1 text-[10px] font-semibold text-white shadow">
+                  <span className="pointer-events-none absolute -top-1 right-0 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-black px-1 text-[10px] font-semibold text-white shadow">
                     {cloudOcrRemainingCount}
                   </span>
                 )}
@@ -476,15 +476,23 @@ function App() {
         )}
 
         {!isSubscribed && (
-          <Button>
-            <Link
-              to={"/upgrade"}
-              className="flex flex-row items-center justify-center gap-2"
-            >
-              <CircleArrowUp color="white" />
-              Upgrade to Supporter
-            </Link>
-          </Button>
+          <div className="flex w-full flex-col items-center gap-1">
+            {cloudOcrEnabled && (
+              <span className="text-center font-light">
+                {cloudOcrRemainingCount} free cloud scans left. Upgrade for
+                unlimited scans.
+              </span>
+            )}
+            <Button className="w-full">
+              <Link
+                to={"/upgrade"}
+                className="flex flex-row items-center justify-center gap-2"
+              >
+                <CircleArrowUp color="white" />
+                Upgrade to Supporter
+              </Link>
+            </Button>
+          </div>
         )}
       </div>
       <div className="flex flex-col items-center justify-center gap-0.5">
