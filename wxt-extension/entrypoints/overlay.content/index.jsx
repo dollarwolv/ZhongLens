@@ -6,6 +6,34 @@ import { captureEvent } from "@/lib/posthog";
 import { getOcrAnalyticsProperties } from "@/lib/ocrAnalytics";
 import { sendMessage } from "webext-bridge/content-script";
 
+const OCR_POPOVER_ID = "zhonglens-ocr-overlay-popover";
+
+// Popovers use the browser top layer like modal dialogs, but they do not make
+// the rest of the document inert. That keeps OCR text compatible with popup
+// dictionary extensions while still beating high-z-index page chrome.
+function removeOcrPopover() {
+  const popover = document.getElementById(OCR_POPOVER_ID);
+
+  if (popover?.matches(":popover-open")) {
+    popover.hidePopover();
+  }
+
+  popover?.remove();
+}
+
+// Forces WXT's shadow host to fill the viewport without taking pointer events
+// away from the regular-DOM OCR text layer.
+function pinShadowHostToViewport(shadowHost) {
+  shadowHost.style.setProperty("position", "fixed", "important");
+  shadowHost.style.setProperty("inset", "0", "important");
+  shadowHost.style.setProperty("width", "100vw", "important");
+  shadowHost.style.setProperty("height", "100vh", "important");
+  shadowHost.style.setProperty("display", "block", "important");
+  shadowHost.style.setProperty("overflow", "visible", "important");
+  shadowHost.style.setProperty("pointer-events", "none", "important");
+  shadowHost.style.setProperty("z-index", "2147483647", "important");
+}
+
 async function getUserAnalyticsStatus() {
   // The shortcut runs in the page content script, so it asks the background
   // worker for the same auth/subscription state the popup already knows.
@@ -45,9 +73,44 @@ export default defineContentScript({
   async main(ctx) {
     const ui = await createShadowRootUi(ctx, {
       name: "zhonglens-ocr-overlay",
-      position: "fixed",
-      anchor: "body",
-      onMount: (container) => {
+      position: "modal",
+      zIndex: 2147483647,
+      anchor: () => document.documentElement,
+      append: (anchor, shadowHost) => {
+        removeOcrPopover();
+        pinShadowHostToViewport(shadowHost);
+
+        const popover = document.createElement("div");
+        popover.id = OCR_POPOVER_ID;
+        popover.setAttribute("popover", "manual");
+        Object.assign(popover.style, {
+          position: "fixed",
+          inset: "0",
+          width: "100vw",
+          height: "100vh",
+          maxWidth: "none",
+          maxHeight: "none",
+          margin: "0",
+          padding: "0",
+          border: "0",
+          background: "transparent",
+          overflow: "visible",
+          pointerEvents: "none",
+        });
+
+        popover.append(shadowHost);
+        anchor.append(popover);
+
+        try {
+          popover.showPopover();
+        } catch {
+          // If the browser cannot open the popover, the overlay still works as
+          // a normal fixed element; it just loses top-layer priority.
+        }
+      },
+      onMount: (container, _shadow, shadowHost) => {
+        pinShadowHostToViewport(shadowHost);
+
         const app = document.createElement("div");
         container.append(app);
 
@@ -63,6 +126,7 @@ export default defineContentScript({
       },
       onRemove: (root) => {
         root?.unmount();
+        removeOcrPopover();
       },
     });
 
