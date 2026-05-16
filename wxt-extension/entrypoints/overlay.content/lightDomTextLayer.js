@@ -1,5 +1,5 @@
 const TEXT_LAYER_ID = "zhonglens-ocr-text-layer";
-const OCR_POPOVER_ID = "zhonglens-ocr-overlay-popover";
+const TEXT_LAYER_Z_INDEX = "10000";
 
 // Reads the user's OCR caption settings, falling back to the defaults used by
 // the extension when a setting has not been saved yet.
@@ -18,7 +18,6 @@ async function getCaptionSettings() {
 // Returns the existing light DOM text layer, or creates it the first time OCR
 // text needs to be shown on the page.
 function getOrCreateTextLayer() {
-  const parent = document.getElementById(OCR_POPOVER_ID) ?? document.body;
   let layer = document.getElementById(TEXT_LAYER_ID);
 
   if (!layer) {
@@ -26,10 +25,10 @@ function getOrCreateTextLayer() {
     layer.id = TEXT_LAYER_ID;
   }
 
-  // Keep the text layer inside the top-layer popover when the OCR overlay is
-  // open. The spans remain regular DOM nodes, not Shadow DOM nodes.
-  if (layer.parentElement !== parent) {
-    parent.append(layer);
+  // Keep OCR text in the real page body. Dictionary popups are also regular
+  // body DOM, so this lets them stack above our text with their own z-index.
+  if (layer.parentElement !== document.body) {
+    document.body.append(layer);
   }
 
   Object.assign(layer.style, {
@@ -38,7 +37,7 @@ function getOrCreateTextLayer() {
     width: "100vw",
     height: "100vh",
     pointerEvents: "none",
-    zIndex: "2147483646",
+    zIndex: TEXT_LAYER_Z_INDEX,
   });
 
   return layer;
@@ -86,7 +85,6 @@ function createTextSpan({ text, layout, textColor, bgEnabled }) {
     color: textColor ?? "#39ff14",
     WebkitTextStroke: "0.5px #000000",
     paddingLeft: "2px",
-    zIndex: "2147483646",
   });
 
   return span;

@@ -21,13 +21,14 @@ function removeOcrPopover() {
   popover?.remove();
 }
 
-// Forces WXT's shadow host to fill the viewport without taking pointer events
-// away from the regular-DOM OCR text layer.
-function pinShadowHostToViewport(shadowHost) {
+// Keeps WXT's shadow host in the top layer without giving it a viewport-sized
+// hit-test box. The React overlay still uses fixed-position children.
+function pinShadowHostToTopLeft(shadowHost) {
   shadowHost.style.setProperty("position", "fixed", "important");
-  shadowHost.style.setProperty("inset", "0", "important");
-  shadowHost.style.setProperty("width", "100vw", "important");
-  shadowHost.style.setProperty("height", "100vh", "important");
+  shadowHost.style.setProperty("top", "0", "important");
+  shadowHost.style.setProperty("left", "0", "important");
+  shadowHost.style.setProperty("width", "0", "important");
+  shadowHost.style.setProperty("height", "0", "important");
   shadowHost.style.setProperty("display", "block", "important");
   shadowHost.style.setProperty("overflow", "visible", "important");
   shadowHost.style.setProperty("pointer-events", "none", "important");
@@ -73,21 +74,21 @@ export default defineContentScript({
   async main(ctx) {
     const ui = await createShadowRootUi(ctx, {
       name: "zhonglens-ocr-overlay",
-      position: "modal",
-      zIndex: 2147483647,
+      position: "inline",
       anchor: () => document.documentElement,
       append: (anchor, shadowHost) => {
         removeOcrPopover();
-        pinShadowHostToViewport(shadowHost);
+        pinShadowHostToTopLeft(shadowHost);
 
         const popover = document.createElement("div");
         popover.id = OCR_POPOVER_ID;
         popover.setAttribute("popover", "manual");
         Object.assign(popover.style, {
           position: "fixed",
-          inset: "0",
-          width: "100vw",
-          height: "100vh",
+          top: "0",
+          left: "0",
+          width: "0",
+          height: "0",
           maxWidth: "none",
           maxHeight: "none",
           margin: "0",
@@ -109,7 +110,7 @@ export default defineContentScript({
         }
       },
       onMount: (container, _shadow, shadowHost) => {
-        pinShadowHostToViewport(shadowHost);
+        pinShadowHostToTopLeft(shadowHost);
 
         const app = document.createElement("div");
         container.append(app);
