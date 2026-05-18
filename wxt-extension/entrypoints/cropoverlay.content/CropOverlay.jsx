@@ -70,15 +70,18 @@ export default ({ onClose }) => {
   }, []);
 
   return (
-    <div className="bg-white-10 font-noto pointer-events-none fixed top-0 left-0 h-screen w-screen">
-      <div className="absolute top-1/20 left-1/2 flex -translate-x-1/2 flex-col items-center justify-center gap-4">
-        <span className="text-neon-green/70 text-sm">
+    <div
+      className="bg-white-10 font-noto pointer-events-none fixed top-0 left-0 h-screen w-screen"
+      style={{ fontSize: "16px" }}
+    >
+      <div className="absolute top-1/20 left-1/2 flex -translate-x-1/2 flex-col items-center justify-center gap-[16px]">
+        <span className="text-neon-green/70 text-[14px]">
           Cropping is currently {crop ? "enabled" : "disabled"}.
         </span>
         {!crop && (
           <Button
             onClick={enableCrop}
-            className="bg-neon-green hover:bg-neon-green/80 pointer-events-auto text-black"
+            className="bg-neon-green hover:bg-neon-green/80 pointer-events-auto h-[36px] gap-[8px] rounded-[6px] px-[16px] py-[8px] text-[14px] text-black"
           >
             Click here to enable cropping.
           </Button>
@@ -104,7 +107,7 @@ export default ({ onClose }) => {
           >
             <div
               style={{ width: `${dims.width}px`, height: `${dims.height}px` }}
-              className="border-neon-green z-1000 flex cursor-grab items-center justify-center border-2 border-dotted p-2 shadow-[0_0_999px_60px]"
+              className="border-neon-green z-1000 flex cursor-grab items-center justify-center border-2 border-dotted p-[8px] shadow-[0_0_999px_60px]"
             >
               <span className="text-neon-green/70 text-center">
                 Character recognition will only be performed in this region.
@@ -117,7 +120,7 @@ export default ({ onClose }) => {
       <Button
         onClick={onClose}
         size={"lg"}
-        className="bg-neon-green hover:bg-neon-green/80 pointer-events-auto absolute bottom-1/20 left-1/2 -translate-x-1/2 text-2xl text-black"
+        className="bg-neon-green hover:bg-neon-green/80 pointer-events-auto absolute bottom-1/20 left-1/2 h-[40px] -translate-x-1/2 gap-[8px] rounded-[6px] px-[24px] py-[8px] text-[24px] text-black"
       >
         Done
       </Button>

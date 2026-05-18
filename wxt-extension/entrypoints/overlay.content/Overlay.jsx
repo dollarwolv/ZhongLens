@@ -160,12 +160,12 @@ export default ({ onClose }) => {
   return (
     <div
       className="font-noto pointer-events-none fixed top-0 left-0 h-screen w-screen"
-      style={{ zIndex: 2147483647 }}
+      style={{ zIndex: 2147483647, fontSize: "16px" }}
     >
       <button
         type="button"
         aria-label="Close overlay"
-        className="hover:border-neon-green/70 hover:text-neon-green focus-visible:ring-neon-green/70 pointer-events-auto absolute top-6 right-6 flex h-20 w-20 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/70 text-white shadow-lg shadow-black/30 backdrop-blur-sm transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 focus-visible:outline-none"
+        className="hover:border-neon-green/70 hover:text-neon-green focus-visible:ring-neon-green/70 pointer-events-auto absolute top-[24px] right-[24px] flex h-[80px] w-[80px] cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/70 text-white shadow-lg shadow-black/30 backdrop-blur-sm transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 focus-visible:outline-none"
         onClick={onClose}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
@@ -198,8 +198,8 @@ export default ({ onClose }) => {
               strokeDasharray="14 10"
             />
           </svg>
-          <span className="mt-2">Using {mode}</span>
-          <span className="mt-2">{status}</span>
+          <span className="mt-[8px]">Using {mode}</span>
+          <span className="mt-[8px]">{status}</span>
         </div>
       )}
       {error && (
