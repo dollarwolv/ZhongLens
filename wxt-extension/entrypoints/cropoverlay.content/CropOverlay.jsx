@@ -71,22 +71,9 @@ export default ({ onClose }) => {
 
   return (
     <div
-      className="bg-white-10 font-noto pointer-events-none fixed top-0 left-0 h-screen w-screen"
+      className="font-noto pointer-events-none fixed top-0 left-0 h-screen w-screen bg-[rgba(3,7,18,0.18)] backdrop-blur-[0.5px]"
       style={{ fontSize: "16px" }}
     >
-      <div className="absolute top-1/20 left-1/2 flex -translate-x-1/2 flex-col items-center justify-center gap-[16px]">
-        <span className="text-neon-green/70 text-[14px]">
-          Cropping is currently {crop ? "enabled" : "disabled"}.
-        </span>
-        {!crop && (
-          <Button
-            onClick={enableCrop}
-            className="bg-neon-green hover:bg-neon-green/80 pointer-events-auto h-[36px] gap-[8px] rounded-[6px] px-[16px] py-[8px] text-[14px] text-black"
-          >
-            Click here to enable cropping.
-          </Button>
-        )}
-      </div>
       <Draggable
         position={pos}
         nodeRef={childRef}
@@ -107,9 +94,9 @@ export default ({ onClose }) => {
           >
             <div
               style={{ width: `${dims.width}px`, height: `${dims.height}px` }}
-              className="border-neon-green z-1000 flex cursor-grab items-center justify-center border-2 border-dotted p-[8px] shadow-[0_0_999px_60px]"
+              className="border-overlay-accent/80 z-1000 flex cursor-grab items-center justify-center border-2 border-dashed bg-[rgba(5,10,8,0.12)] p-[8px] shadow-[0_0_0_9999px_rgba(2,6,23,0.54),0_22px_60px_rgba(0,0,0,0.36),0_0_32px_rgba(52,211,153,0.22)] backdrop-blur-[0.5px]"
             >
-              <span className="text-neon-green/70 text-center">
+              <span className="text-overlay-text max-w-[36ch] rounded-[8px] border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] px-[12px] py-[8px] text-center text-[13px] leading-[18px] shadow-[0_12px_32px_rgba(0,0,0,0.32)] backdrop-blur-md">
                 Character recognition will only be performed in this region.
                 This both helps performance and accuracy. Drag/Resize to adjust.
               </span>
@@ -120,10 +107,23 @@ export default ({ onClose }) => {
       <Button
         onClick={onClose}
         size={"lg"}
-        className="bg-neon-green hover:bg-neon-green/80 pointer-events-auto absolute bottom-1/20 left-1/2 h-[40px] -translate-x-1/2 gap-[8px] rounded-[6px] px-[24px] py-[8px] text-[24px] text-black"
+        className="bg-overlay-accent text-overlay-on-accent hover:bg-overlay-accent-strong pointer-events-auto absolute bottom-1/20 left-1/2 h-[44px] -translate-x-1/2 gap-[8px] rounded-[10px] px-[24px] py-[8px] text-[16px] font-semibold shadow-[0_32px_72px_rgba(16,185,129,0.26)]"
       >
         Done
       </Button>
+      <div className="absolute top-1/20 left-1/2 flex -translate-x-1/2 flex-col items-center justify-center gap-[12px] rounded-[14px] border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] px-[18px] py-[14px] text-center shadow-[var(--overlay-shadow)] backdrop-blur-xl">
+        <span className="text-overlay-muted text-[13px] leading-[18px]">
+          Cropping is currently {crop ? "enabled" : "disabled"}.
+        </span>
+        {!crop && (
+          <Button
+            onClick={enableCrop}
+            className="bg-overlay-accent text-overlay-on-accent hover:bg-overlay-accent-strong pointer-events-auto h-[36px] gap-[8px] rounded-[8px] px-[16px] py-[8px] text-[14px] font-medium"
+          >
+            Click here to enable cropping.
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

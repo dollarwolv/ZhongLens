@@ -195,7 +195,7 @@ export default ({ onClose }) => {
       <button
         type="button"
         aria-label="Close overlay"
-        className="hover:border-neon-green/70 hover:text-neon-green focus-visible:ring-neon-green/70 pointer-events-auto absolute top-[24px] right-[24px] flex h-[80px] w-[80px] cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/70 text-white shadow-lg shadow-black/30 backdrop-blur-sm transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 focus-visible:outline-none"
+        className="text-overlay-text hover:border-overlay-accent/60 hover:text-overlay-accent focus-visible:ring-overlay-accent/70 pointer-events-auto absolute top-[20px] right-[20px] flex h-[48px] w-[48px] cursor-pointer items-center justify-center rounded-full border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] shadow-[0_18px_48px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md transition-colors duration-150 hover:bg-[var(--overlay-surface-strong)] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 focus-visible:outline-none"
         onClick={onClose}
       >
         <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
@@ -208,9 +208,9 @@ export default ({ onClose }) => {
           />
         </svg>
       </button>
-      {!data.length && (
+      {loading && (
         <div
-          className="zhonglens-crop-shimmer absolute overflow-hidden border border-green-400/70"
+          className="zhonglens-crop-shimmer border-overlay-accent/70 absolute overflow-hidden border-2 bg-[rgba(3,7,18,0.05)] shadow-[0_0_0_1px_rgba(3,7,18,0.35),0_0_28px_rgba(52,211,153,0.2)]"
           style={{
             top: cropBox?.yStart || 0,
             left: cropBox?.xStart || 0,
@@ -220,13 +220,13 @@ export default ({ onClose }) => {
         />
       )}
       {loading && (
-        <div className="text-neon-green absolute top-[50%] left-[50%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center">
+        <div className="text-overlay-text absolute top-[50%] left-[50%] flex min-w-[240px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-lg border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] px-[22px] py-[20px] text-center shadow-[var(--overlay-shadow)] backdrop-blur-xl">
           <svg
             width="40"
             height="40"
             viewBox="0 0 24 24"
             aria-hidden="true"
-            className="block animate-spin"
+            className="text-overlay-accent block animate-spin"
           >
             <circle
               cx="12"
@@ -239,13 +239,19 @@ export default ({ onClose }) => {
               strokeDasharray="14 10"
             />
           </svg>
-          <span className="mt-[8px]">Using {mode}</span>
-          <span className="mt-[8px]">{status}</span>
+          <span className="mt-[12px] text-[15px] leading-[20px] font-medium">
+            {status}
+          </span>
+          <span className="text-overlay-muted mt-[4px] text-[12px] leading-[16px]">
+            Using {mode}
+          </span>
         </div>
       )}
       {error && (
-        <div className="absolute top-[50%] left-[50%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center text-green-400">
-          <span>{error}</span>
+        <div className="absolute top-[50%] left-[50%] flex max-w-[min(420px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-[14px] border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] px-[22px] py-[18px] text-center shadow-[var(--overlay-shadow)] backdrop-blur-xl">
+          <span className="text-[15px] leading-[20px] font-medium text-[#fda4af]">
+            {error}
+          </span>
         </div>
       )}
     </div>

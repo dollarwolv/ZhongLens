@@ -1,5 +1,6 @@
 const TEXT_LAYER_ID = "zhonglens-ocr-text-layer";
 const TEXT_LAYER_Z_INDEX = "10000";
+const DEFAULT_CAPTION_TEXT_COLOR = "#f8fafc";
 
 // Reads the user's OCR caption settings, falling back to the defaults used by
 // the extension when a setting has not been saved yet.
@@ -10,7 +11,7 @@ async function getCaptionSettings() {
   ]);
 
   return {
-    textColor: settings.captionTextColor ?? "#39ff14",
+    textColor: settings.captionTextColor ?? DEFAULT_CAPTION_TEXT_COLOR,
     bgEnabled: settings.captionBgEnabled ?? true,
   };
 }
@@ -81,10 +82,21 @@ function createTextSpan({ text, layout, textColor, bgEnabled }) {
     whiteSpace: "pre",
     pointerEvents: "auto",
     userSelect: "text",
-    backgroundColor: bgEnabled ? "white" : "transparent",
-    color: textColor ?? "#39ff14",
-    WebkitTextStroke: "0.5px #000000",
+    lineHeight: "1",
+    fontWeight: "600",
+    backgroundColor: bgEnabled ? "rgba(5, 10, 8, 0.8)" : "transparent",
+    color: textColor ?? DEFAULT_CAPTION_TEXT_COLOR,
+    border: bgEnabled ? "1px solid rgba(52, 211, 153, 0.28)" : "none",
+    borderRadius: bgEnabled ? "4px" : "0",
+    boxShadow: bgEnabled
+      ? "0 8px 24px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08)"
+      : "none",
+    textShadow: bgEnabled
+      ? "0 1px 2px rgba(0, 0, 0, 0.65)"
+      : "0 0 2px rgba(0, 0, 0, 0.9), 0 1px 2px rgba(0, 0, 0, 0.85)",
+    WebkitTextStroke: bgEnabled ? "0 transparent" : "0.4px rgba(0, 0, 0, 0.85)",
     paddingLeft: "2px",
+    paddingRight: bgEnabled ? "2px" : "0",
   });
 
   return span;

@@ -1,6 +1,8 @@
 import { syncCloudOcrFreeUseCount } from "./cloudOcrUsage";
 import { captureEvent } from "../../lib/posthog";
 
+const DEFAULT_CAPTION_TEXT_COLOR = "#f8fafc";
+
 async function ensureInstallTrackingState({ syncUsage = false } = {}) {
   const syncStorage = await chrome.storage.sync.get([
     "anonInstallId",
@@ -45,7 +47,7 @@ export function initGeneralHandlers() {
       applyThresh: false,
       thresh: 128,
       captionBgEnabled: true,
-      captionTextColor: "#39ff14",
+      captionTextColor: DEFAULT_CAPTION_TEXT_COLOR,
       openOCRShortcut: ["ctrl", "o"],
       closeOCRShortcut: ["ctrl", "l"],
       openCropShortcut: ["ctrl", "u"],
