@@ -21,12 +21,18 @@ export default ({ onClose }) => {
   const [startY, setStartY] = useState(0);
   const [status, setStatus] = useState("Analyzing...");
   const [mode, setMode] = useState();
+  const [settings, setSettings] = useState({});
 
   async function getMode() {
     const response = await chrome.storage.sync.get("serverProcessingEnabled");
     const serverProcessingEnabled = response.serverProcessingEnabled;
     if (serverProcessingEnabled) setMode("Cloud OCR");
     else setMode("Local OCR");
+  }
+
+  async function getSettings() {
+    const response = await chrome.storage.sync.get(null);
+    setSettings(response);
   }
 
   async function screenshot() {
@@ -135,6 +141,7 @@ export default ({ onClose }) => {
 
   useEffect(() => {
     getMode();
+    getSettings();
     screenshot();
 
     return () => {
@@ -157,6 +164,29 @@ export default ({ onClose }) => {
     });
   }, [data, scalingFactor, crop, startX, startY, error]);
 
+  const cropBox = (() => {
+    if (!settings.crop) {
+      return null;
+    }
+
+    const xStart = Number(settings.cropXStart);
+    const yStart = Number(settings.cropYStart);
+    const xEnd = Number(settings.cropXEnd);
+    const yEnd = Number(settings.cropYEnd);
+    const width = xEnd - xStart;
+    const height = yEnd - yStart;
+
+    if (![xStart, yStart, width, height].every(Number.isFinite)) {
+      return null;
+    }
+
+    if (width <= 0 || height <= 0) {
+      return null;
+    }
+
+    return { xStart, yStart, width, height };
+  })();
+
   return (
     <div
       className="font-noto pointer-events-none fixed top-0 left-0 h-screen w-screen"
@@ -178,6 +208,17 @@ export default ({ onClose }) => {
           />
         </svg>
       </button>
+      {!data.length && (
+        <div
+          className="zhonglens-crop-shimmer absolute overflow-hidden border border-green-400/70"
+          style={{
+            top: cropBox?.yStart || 0,
+            left: cropBox?.xStart || 0,
+            width: cropBox?.width || "100vw",
+            height: cropBox?.height || "100vh",
+          }}
+        />
+      )}
       {loading && (
         <div className="text-neon-green absolute top-[50%] left-[50%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center">
           <svg

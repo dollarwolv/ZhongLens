@@ -139,3 +139,38 @@
   border-right: 2px solid #39ff14;
   border-bottom: 2px solid #39ff14;
 }
+
+@keyframes zhonglens-crop-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.zhonglens-crop-shimmer {
+  background: transparent;
+}
+
+.zhonglens-crop-shimmer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(74, 222, 128, 0.06) 40%,
+    rgba(187, 247, 208, 0.34) 50%,
+    rgba(74, 222, 128, 0.06) 60%,
+    transparent 100%
+  );
+  animation: zhonglens-crop-shimmer 1.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zhonglens-crop-shimmer::before {
+    animation: none;
+    transform: translateX(0);
+  }
+}
