@@ -245,6 +245,11 @@ export default ({ onClose }) => {
           <span className="text-overlay-muted mt-[4px] text-[12px] leading-[16px]">
             Using {mode}
           </span>
+          <span className="text-overlay-muted mt-[4px] text-[10px] leading-[16px]">
+            {cropBox
+              ? "Scan taking too long? Move crop to only include the most important text."
+              : "Scan taking too long? Make sure to crop the scanning region."}
+          </span>
         </div>
       )}
       {error && (
