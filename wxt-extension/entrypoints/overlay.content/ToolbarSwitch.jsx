@@ -3,6 +3,7 @@ export default function ToolbarSwitch({
   active,
   activeIcon,
   inactiveIcon,
+  badge,
   onClick,
   disabled = false,
 }) {
@@ -13,10 +14,15 @@ export default function ToolbarSwitch({
       aria-checked={active}
       aria-label={`${label} ${active ? "on" : "off"}`}
       title={`${label} ${active ? "on" : "off"}`}
-      className="text-overlay-muted hover:text-overlay-text focus-visible:ring-overlay-accent/70 pointer-events-auto flex min-w-[58px] cursor-pointer flex-col items-center justify-center gap-[4px] rounded-full px-[6px] py-[4px] transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45"
+      className="text-overlay-muted hover:text-overlay-text focus-visible:ring-overlay-accent/70 pointer-events-auto relative flex min-w-[58px] cursor-pointer flex-col items-center justify-center gap-[4px] rounded-full px-[6px] py-[4px] transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-45"
       onClick={onClick}
       disabled={disabled}
     >
+      {badge !== undefined && badge !== null && (
+        <span className="pointer-events-none absolute -top-[4px] -right-[4px] z-10 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-black px-[5px] text-[10px] leading-none font-semibold text-white shadow">
+          {badge}
+        </span>
+      )}
       <span
         className={`relative flex h-[24px] w-[48px] items-center rounded-full border px-[1px] text-[10px] font-medium transition-colors ${
           active

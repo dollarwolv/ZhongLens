@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Cloud, CloudOff, Crop, PencilRuler, RefreshCw, X } from "lucide-react";
 import { sendMessage } from "webext-bridge/content-script";
 import { captureEvent } from "@/lib/posthog";
+import { getRemainingCloudOcrUses } from "@/lib/cloudOcr";
 import {
   getOcrAnalyticsProperties,
   getOcrFailureCode,
@@ -25,12 +26,29 @@ export default ({ onClose }) => {
   const [status, setStatus] = useState("Analyzing...");
   const [mode, setMode] = useState();
   const [settings, setSettings] = useState({});
+  const [isSubscribed, setIsSubscribed] = useState(false);
 
   async function getSettings() {
     const response = await chrome.storage.sync.get(null);
     setSettings(response);
     setMode(response.serverProcessingEnabled ? "Cloud OCR" : "Local OCR");
     return response;
+  }
+
+  async function getSubscriptionStatus() {
+    try {
+      const res = await sendMessage(
+        "GET_SUBSCRIPTION_STATUS",
+        { useCached: true },
+        "background",
+      );
+
+      if (res?.ok) {
+        setIsSubscribed(Boolean(res.userSubscribed));
+      }
+    } catch (error) {
+      console.error("Failed to get subscription status:", error);
+    }
   }
 
   async function screenshot() {
@@ -192,6 +210,7 @@ export default ({ onClose }) => {
   useEffect(() => {
     void (async () => {
       await getSettings();
+      await getSubscriptionStatus();
       await screenshot();
     })();
 
@@ -267,6 +286,10 @@ export default ({ onClose }) => {
   const cropModeEnabled = Boolean(settings.crop);
   const cropBox = cropModeEnabled ? selectedCropBox : null;
   const cloudOcrEnabled = Boolean(settings.serverProcessingEnabled);
+  const cloudOcrRemainingCount = getRemainingCloudOcrUses(
+    settings.cloudOcrFreeUseCount,
+  );
+  const showCloudUsage = cloudOcrEnabled && !isSubscribed;
   const scanAgainDisabled =
     loading ||
     (!data.length && !error) ||
@@ -328,7 +351,7 @@ export default ({ onClose }) => {
             {status}
           </span>
           <span className="text-overlay-muted mt-[4px] text-[12px] leading-[16px]">
-            Using {mode}
+            Using {mode} - Crop {cropModeEnabled ? "enabled" : "disabled"}.
           </span>
           <span className="text-overlay-muted mt-[4px] text-[10px] leading-[16px]">
             {cropBox
@@ -344,56 +367,65 @@ export default ({ onClose }) => {
           </span>
         </div>
       )}
-      <div className="pointer-events-auto absolute bottom-[24px] left-1/2 flex -translate-x-1/2 items-center gap-[8px] rounded-full border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] px-[16px] py-[12px] shadow-[var(--overlay-shadow)] backdrop-blur-xl">
-        <ToolbarSwitch
-          label="Crop"
-          active={cropModeEnabled}
-          activeIcon={<Crop className="size-[13px]" />}
-          inactiveIcon={<X className="size-[13px]" />}
-          disabled={loading}
-          onClick={() => {
-            void toggleCropMode();
-          }}
-        />
-        {cropModeEnabled && (
-          <div className="flex flex-col items-center justify-between gap-[2px]">
-            <ToolbarIconButton
-              label="Edit crop region"
-              onClick={editCropRegion}
-              size={"28px"}
-              disabled={loading}
-            >
-              <PencilRuler className="size-[18px]" />
-            </ToolbarIconButton>
-            <span
-              className={`text-overlay-muted text-[10px] ${loading && "opacity-45"}`}
-            >
-              Edit crop
-            </span>
-          </div>
-        )}
-        <ToolbarSwitch
-          label="Cloud"
-          active={cloudOcrEnabled}
-          activeIcon={<Cloud className="size-[13px]" />}
-          inactiveIcon={<CloudOff className="size-[13px]" />}
-          disabled={loading}
-          onClick={() => {
-            void toggleCloudOcrMode();
-          }}
-        />
-        <ToolbarIconButton
-          label="Scan again"
-          disabled={scanAgainDisabled}
-          size={"48px"}
-          onClick={() => {
-            void scanAgain();
-          }}
-        >
-          <RefreshCw
-            className={`size-[18px] ${loading ? "animate-spin" : ""}`}
+      <div className="pointer-events-auto absolute bottom-[24px] left-1/2 flex max-w-[calc(100vw-32px)] -translate-x-1/2 flex-col items-center justify-between gap-[6px] rounded-[28px] border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] px-[16px] py-[10px] shadow-[var(--overlay-shadow)] backdrop-blur-xl">
+        <div className="flex items-center gap-[8px]">
+          <ToolbarSwitch
+            label="Crop"
+            active={cropModeEnabled}
+            activeIcon={<Crop className="size-[13px]" />}
+            inactiveIcon={<X className="size-[13px]" />}
+            disabled={loading}
+            onClick={() => {
+              void toggleCropMode();
+            }}
           />
-        </ToolbarIconButton>
+          {cropModeEnabled && (
+            <div className="flex flex-col items-center justify-between gap-[2px]">
+              <ToolbarIconButton
+                label="Edit crop region"
+                onClick={editCropRegion}
+                size={"28px"}
+                disabled={loading}
+              >
+                <PencilRuler className="size-[18px]" />
+              </ToolbarIconButton>
+              <span
+                className={`text-overlay-muted text-[10px] ${loading && "opacity-45"}`}
+              >
+                Edit crop
+              </span>
+            </div>
+          )}
+          <ToolbarSwitch
+            label="Cloud"
+            active={cloudOcrEnabled}
+            activeIcon={<Cloud className="size-[13px]" />}
+            inactiveIcon={<CloudOff className="size-[13px]" />}
+            badge={showCloudUsage ? cloudOcrRemainingCount : null}
+            disabled={loading}
+            onClick={() => {
+              void toggleCloudOcrMode();
+            }}
+          />
+          <ToolbarIconButton
+            label="Scan again"
+            disabled={scanAgainDisabled}
+            size={"44px"}
+            onClick={() => {
+              void scanAgain();
+            }}
+          >
+            <RefreshCw
+              className={`size-[18px] ${loading ? "animate-spin" : ""}`}
+            />
+          </ToolbarIconButton>
+        </div>
+        {showCloudUsage && (
+          <span className="text-overlay-muted max-w-full truncate px-[8px] text-center text-[10px] leading-[14px]">
+            {cloudOcrRemainingCount} free cloud scans left. Upgrade to supporter
+            for unlimited scans.
+          </span>
+        )}
       </div>
     </div>
   );
