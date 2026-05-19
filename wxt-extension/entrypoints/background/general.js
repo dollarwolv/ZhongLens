@@ -32,6 +32,33 @@ async function ensureInstallTrackingState({ syncUsage = false } = {}) {
 export function initGeneralHandlers() {
   void ensureInstallTrackingState();
 
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (msg?.type !== "TOGGLE_CROP_OVERLAY_FROM_CONTENT") {
+      return;
+    }
+
+    const tabId = sender.tab?.id;
+
+    if (tabId == null) {
+      sendResponse({ ok: false, error: "No sender tab found." });
+      return;
+    }
+
+    chrome.tabs.sendMessage(tabId, { type: "TOGGLE_CROP_OVERLAY" }, (res) => {
+      if (chrome.runtime.lastError) {
+        sendResponse({
+          ok: false,
+          error: chrome.runtime.lastError.message,
+        });
+        return;
+      }
+
+      sendResponse(res);
+    });
+
+    return true;
+  });
+
   chrome.runtime.onInstalled.addListener(() => {
     const defaultSettings = {
       crop: false,

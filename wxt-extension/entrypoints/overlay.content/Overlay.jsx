@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Cloud, CloudOff, Crop, PencilRuler, RefreshCw, X } from "lucide-react";
 import { sendMessage } from "webext-bridge/content-script";
 import { captureEvent } from "@/lib/posthog";
 import {
@@ -10,6 +11,8 @@ import {
   removeLightDomTextLayer,
   renderLightDomTextLayer,
 } from "./lightDomTextLayer";
+import ToolbarIconButton from "./ToolbarIconButton";
+import ToolbarSwitch from "./ToolbarSwitch";
 
 export default ({ onClose }) => {
   const [loading, setLoading] = useState(false);
@@ -23,22 +26,20 @@ export default ({ onClose }) => {
   const [mode, setMode] = useState();
   const [settings, setSettings] = useState({});
 
-  async function getMode() {
-    const response = await chrome.storage.sync.get("serverProcessingEnabled");
-    const serverProcessingEnabled = response.serverProcessingEnabled;
-    if (serverProcessingEnabled) setMode("Cloud OCR");
-    else setMode("Local OCR");
-  }
-
   async function getSettings() {
     const response = await chrome.storage.sync.get(null);
     setSettings(response);
+    setMode(response.serverProcessingEnabled ? "Cloud OCR" : "Local OCR");
+    return response;
   }
 
   async function screenshot() {
     // Start timing before the screenshot request so duration_ms covers the
     // whole OCR wait from the user's point of view.
     const startedAt = performance.now();
+    setError("");
+    setData([]);
+    removeLightDomTextLayer();
     setLoading(true);
     const { cssW, cssH } = getViewportCssSize();
     setStatus("Processing image...");
@@ -57,7 +58,7 @@ export default ({ onClose }) => {
         ),
         full_error_code: fullErrorCode,
       });
-      setError(res?.error);
+      setError(fullErrorCode);
       setData([]);
       removeLightDomTextLayer();
       setLoading(false);
@@ -131,6 +132,55 @@ export default ({ onClose }) => {
     setLoading(false);
   }
 
+  async function updateOverlaySetting(updates) {
+    setSettings((currentSettings) => ({
+      ...currentSettings,
+      ...updates,
+    }));
+    await chrome.storage.sync.set(updates);
+  }
+
+  async function toggleCropMode() {
+    const newCrop = !cropModeEnabled;
+    await updateOverlaySetting({ crop: newCrop });
+    void captureEvent("crop_mode_toggled", { enabled: newCrop });
+
+    if (newCrop && !selectedCropBox) {
+      editCropRegion();
+    }
+  }
+
+  async function toggleCloudOcrMode() {
+    const newEnabled = !cloudOcrEnabled;
+    await updateOverlaySetting({ serverProcessingEnabled: newEnabled });
+    setMode(newEnabled ? "Cloud OCR" : "Local OCR");
+    void captureEvent("cloud_ocr_toggled", { enabled: newEnabled });
+  }
+
+  function editCropRegion() {
+    chrome.runtime.sendMessage(
+      { type: "TOGGLE_CROP_OVERLAY_FROM_CONTENT" },
+      (res) => {
+        if (chrome.runtime.lastError || !res?.ok) {
+          console.error(
+            chrome.runtime.lastError?.message ||
+              res?.error ||
+              "Failed to toggle crop overlay.",
+          );
+        }
+      },
+    );
+  }
+
+  async function scanAgain() {
+    if (loading) {
+      return;
+    }
+
+    await getSettings();
+    await screenshot();
+  }
+
   function getViewportCssSize() {
     const vv = window.visualViewport;
     return {
@@ -140,12 +190,43 @@ export default ({ onClose }) => {
   }
 
   useEffect(() => {
-    getMode();
-    getSettings();
-    screenshot();
+    void (async () => {
+      await getSettings();
+      await screenshot();
+    })();
 
     return () => {
       removeLightDomTextLayer();
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleStorageChange = (changes, areaName) => {
+      if (areaName !== "sync") {
+        return;
+      }
+
+      setSettings((currentSettings) => {
+        const nextSettings = { ...currentSettings };
+
+        for (const [key, change] of Object.entries(changes)) {
+          nextSettings[key] = change.newValue;
+        }
+
+        return nextSettings;
+      });
+
+      if (changes.serverProcessingEnabled) {
+        setMode(
+          changes.serverProcessingEnabled.newValue ? "Cloud OCR" : "Local OCR",
+        );
+      }
+    };
+
+    chrome.storage.onChanged.addListener(handleStorageChange);
+
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange);
     };
   }, []);
 
@@ -164,11 +245,7 @@ export default ({ onClose }) => {
     });
   }, [data, scalingFactor, crop, startX, startY, error]);
 
-  const cropBox = (() => {
-    if (!settings.crop) {
-      return null;
-    }
-
+  const selectedCropBox = (() => {
     const xStart = Number(settings.cropXStart);
     const yStart = Number(settings.cropYStart);
     const xEnd = Number(settings.cropXEnd);
@@ -186,6 +263,14 @@ export default ({ onClose }) => {
 
     return { xStart, yStart, width, height };
   })();
+
+  const cropModeEnabled = Boolean(settings.crop);
+  const cropBox = cropModeEnabled ? selectedCropBox : null;
+  const cloudOcrEnabled = Boolean(settings.serverProcessingEnabled);
+  const scanAgainDisabled =
+    loading ||
+    (!data.length && !error) ||
+    (cropModeEnabled && !selectedCropBox);
 
   return (
     <div
@@ -259,6 +344,57 @@ export default ({ onClose }) => {
           </span>
         </div>
       )}
+      <div className="pointer-events-auto absolute bottom-[24px] left-1/2 flex -translate-x-1/2 items-center gap-[8px] rounded-full border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] px-[16px] py-[12px] shadow-[var(--overlay-shadow)] backdrop-blur-xl">
+        <ToolbarSwitch
+          label="Crop"
+          active={cropModeEnabled}
+          activeIcon={<Crop className="size-[13px]" />}
+          inactiveIcon={<X className="size-[13px]" />}
+          disabled={loading}
+          onClick={() => {
+            void toggleCropMode();
+          }}
+        />
+        {cropModeEnabled && (
+          <div className="flex flex-col items-center justify-between gap-[2px]">
+            <ToolbarIconButton
+              label="Edit crop region"
+              onClick={editCropRegion}
+              size={"28px"}
+              disabled={loading}
+            >
+              <PencilRuler className="size-[18px]" />
+            </ToolbarIconButton>
+            <span
+              className={`text-overlay-muted text-[10px] ${loading && "opacity-45"}`}
+            >
+              Edit crop
+            </span>
+          </div>
+        )}
+        <ToolbarSwitch
+          label="Cloud"
+          active={cloudOcrEnabled}
+          activeIcon={<Cloud className="size-[13px]" />}
+          inactiveIcon={<CloudOff className="size-[13px]" />}
+          disabled={loading}
+          onClick={() => {
+            void toggleCloudOcrMode();
+          }}
+        />
+        <ToolbarIconButton
+          label="Scan again"
+          disabled={scanAgainDisabled}
+          size={"48px"}
+          onClick={() => {
+            void scanAgain();
+          }}
+        >
+          <RefreshCw
+            className={`size-[18px] ${loading ? "animate-spin" : ""}`}
+          />
+        </ToolbarIconButton>
+      </div>
     </div>
   );
 };
