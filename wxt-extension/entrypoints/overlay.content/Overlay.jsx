@@ -197,6 +197,10 @@ export default ({ onClose }) => {
     void captureEvent("cloud_ocr_toggled", { enabled: newEnabled });
   }
 
+  async function updateOverlayToolbarHidden(hidden) {
+    await updateOverlaySetting({ overlayToolbarHidden: hidden });
+  }
+
   function editCropRegion() {
     chrome.runtime.sendMessage(
       { type: "TOGGLE_CROP_OVERLAY_FROM_CONTENT" },
@@ -309,6 +313,7 @@ export default ({ onClose }) => {
   const cropModeEnabled = Boolean(settings.crop);
   const cropBox = cropModeEnabled ? selectedCropBox : null;
   const cloudOcrEnabled = Boolean(settings.serverProcessingEnabled);
+  const overlayToolbarHidden = Boolean(settings.overlayToolbarHidden);
   const cloudOcrRemainingCount = getRemainingCloudOcrUses(
     settings.cloudOcrFreeUseCount,
   );
@@ -401,10 +406,12 @@ export default ({ onClose }) => {
           showCloudUsage={showCloudUsage}
           cloudOcrRemainingCount={cloudOcrRemainingCount}
           scanAgainDisabled={scanAgainDisabled}
+          hidden={overlayToolbarHidden}
           onToggleCropMode={toggleCropMode}
           onEditCropRegion={editCropRegion}
           onToggleCloudOcrMode={toggleCloudOcrMode}
           onScanAgain={scanAgain}
+          onHiddenChange={updateOverlayToolbarHidden}
         />
       )}
     </div>

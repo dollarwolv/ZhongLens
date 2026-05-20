@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Cloud,
   CloudOff,
@@ -19,20 +18,20 @@ export default function OverlayToolbar({
   showCloudUsage,
   cloudOcrRemainingCount,
   scanAgainDisabled,
+  hidden,
   onToggleCropMode,
   onEditCropRegion,
   onToggleCloudOcrMode,
   onScanAgain,
+  onHiddenChange,
 }) {
-  const [collapsed, setCollapsed] = useState(false);
-
   return (
     <>
       <div
-        aria-hidden={collapsed}
-        inert={collapsed ? "" : undefined}
+        aria-hidden={hidden}
+        inert={hidden ? "" : undefined}
         className={`absolute bottom-[24px] left-1/2 flex max-w-[calc(100vw-32px)] origin-bottom -translate-x-1/2 flex-col items-center justify-between gap-[6px] rounded-[28px] border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] px-[16px] py-[10px] shadow-[var(--overlay-shadow)] backdrop-blur-xl transition-[opacity,transform] duration-200 ease-out ${
-          collapsed
+          hidden
             ? "pointer-events-none scale-75 opacity-0"
             : "pointer-events-auto scale-100 opacity-100"
         }`}
@@ -43,7 +42,7 @@ export default function OverlayToolbar({
           title="Collapse OCR controls"
           className="text-overlay-muted hover:border-overlay-accent/50 hover:text-overlay-text focus-visible:ring-overlay-accent/70 absolute top-[-6px] right-[-6px] flex size-[24px] cursor-pointer items-center justify-center rounded-full border border-white/15 bg-[var(--overlay-surface-strong)] shadow-[0_8px_20px_rgba(0,0,0,0.32)] transition-colors hover:bg-white/12 focus-visible:ring-2 focus-visible:outline-none"
           onClick={() => {
-            setCollapsed(true);
+            void onHiddenChange(true);
           }}
         >
           <Minimize2 className="size-[12px]" />
@@ -113,15 +112,15 @@ export default function OverlayToolbar({
         type="button"
         aria-label="Show OCR controls"
         title="Show OCR controls"
-        aria-hidden={!collapsed}
-        tabIndex={collapsed ? 0 : -1}
+        aria-hidden={!hidden}
+        tabIndex={hidden ? 0 : -1}
         className={`text-overlay-muted hover:border-overlay-accent/50 hover:text-overlay-text focus-visible:ring-overlay-accent/70 absolute bottom-[24px] left-1/2 flex h-[28px] w-[40px] origin-bottom -translate-x-1/2 cursor-pointer items-center justify-center rounded-full border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] shadow-[var(--overlay-shadow)] backdrop-blur-xl transition-[background-color,border-color,color,opacity,transform] duration-200 ease-out hover:bg-[var(--overlay-surface-strong)] focus-visible:ring-2 focus-visible:outline-none ${
-          collapsed
+          hidden
             ? "pointer-events-auto scale-100 opacity-100"
             : "pointer-events-none scale-75 opacity-0"
         }`}
         onClick={() => {
-          setCollapsed(false);
+          void onHiddenChange(false);
         }}
       >
         <Maximize2 className="size-[12px]" />

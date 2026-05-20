@@ -75,6 +75,7 @@ export function initGeneralHandlers() {
       thresh: 128,
       captionBgEnabled: true,
       captionTextColor: DEFAULT_CAPTION_TEXT_COLOR,
+      overlayToolbarHidden: false,
       openOCRShortcut: ["ctrl", "o"],
       closeOCRShortcut: ["ctrl", "l"],
       openCropShortcut: ["ctrl", "u"],
