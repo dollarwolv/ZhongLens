@@ -302,7 +302,7 @@ function App() {
       </Tooltip>
       <div className="flex w-full flex-row items-center justify-center gap-5">
         <img src="/icon/128.png" alt="ZhongLens logo" className="w-10" />
-        <h1 className="text-2xl">ZhongLens v0</h1>
+        <h1 className="text-2xl">ZhongLens v0.1</h1>
       </div>
       <button
         className="bg-beige mx-auto flex h-50 cursor-pointer flex-col items-center justify-center rounded-lg px-3.5 py-2 shadow-lg"
