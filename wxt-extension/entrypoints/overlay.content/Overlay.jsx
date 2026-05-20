@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Cloud, CloudOff, Crop, PencilRuler, RefreshCw, X } from "lucide-react";
 import { sendMessage } from "webext-bridge/content-script";
 import { captureEvent } from "@/lib/posthog";
@@ -15,6 +15,16 @@ import {
 import ToolbarIconButton from "./ToolbarIconButton";
 import ToolbarSwitch from "./ToolbarSwitch";
 
+const OVERLAY_CHROME_REVEAL_DELAY_MS = 50;
+
+function waitForNextPaint() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+}
+
 export default ({ onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -27,6 +37,8 @@ export default ({ onClose }) => {
   const [mode, setMode] = useState();
   const [settings, setSettings] = useState({});
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [overlayChromeVisible, setOverlayChromeVisible] = useState(false);
+  const overlayChromeTimerRef = useRef(null);
 
   async function getSettings() {
     const response = await chrome.storage.sync.get(null);
@@ -58,6 +70,12 @@ export default ({ onClose }) => {
     setError("");
     setData([]);
     removeLightDomTextLayer();
+    setOverlayChromeVisible(false);
+    window.clearTimeout(overlayChromeTimerRef.current);
+    await waitForNextPaint();
+    overlayChromeTimerRef.current = window.setTimeout(() => {
+      setOverlayChromeVisible(true);
+    }, OVERLAY_CHROME_REVEAL_DELAY_MS);
     setLoading(true);
     const { cssW, cssH } = getViewportCssSize();
     setStatus("Processing image...");
@@ -80,6 +98,8 @@ export default ({ onClose }) => {
       setData([]);
       removeLightDomTextLayer();
       setLoading(false);
+      setOverlayChromeVisible(true);
+      window.clearTimeout(overlayChromeTimerRef.current);
       return;
     }
     setStatus("Untangling response...");
@@ -134,6 +154,8 @@ export default ({ onClose }) => {
       setData([]);
       removeLightDomTextLayer();
       setLoading(false);
+      setOverlayChromeVisible(true);
+      window.clearTimeout(overlayChromeTimerRef.current);
       return;
     }
 
@@ -148,6 +170,8 @@ export default ({ onClose }) => {
     setCrop(res?.crop);
     setData(data);
     setLoading(false);
+    setOverlayChromeVisible(true);
+    window.clearTimeout(overlayChromeTimerRef.current);
   }
 
   async function updateOverlaySetting(updates) {
@@ -215,6 +239,7 @@ export default ({ onClose }) => {
     })();
 
     return () => {
+      window.clearTimeout(overlayChromeTimerRef.current);
       removeLightDomTextLayer();
     };
   }, []);
@@ -294,29 +319,32 @@ export default ({ onClose }) => {
     loading ||
     (!data.length && !error) ||
     (cropModeEnabled && !selectedCropBox);
+  const showOverlayChrome = overlayChromeVisible;
 
   return (
     <div
       className="font-noto pointer-events-none fixed top-0 left-0 h-screen w-screen"
       style={{ zIndex: 2147483647, fontSize: "16px" }}
     >
-      <button
-        type="button"
-        aria-label="Close overlay"
-        className="text-overlay-text hover:border-overlay-accent/60 hover:text-overlay-accent focus-visible:ring-overlay-accent/70 pointer-events-auto absolute top-[20px] right-[20px] flex h-[48px] w-[48px] cursor-pointer items-center justify-center rounded-full border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] shadow-[0_18px_48px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md transition-colors duration-150 hover:bg-[var(--overlay-surface-strong)] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 focus-visible:outline-none"
-        onClick={onClose}
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M18 6L6 18M6 6l12 12"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          />
-        </svg>
-      </button>
-      {loading && (
+      {showOverlayChrome && (
+        <button
+          type="button"
+          aria-label="Close overlay"
+          className="text-overlay-text hover:border-overlay-accent/60 hover:text-overlay-accent focus-visible:ring-overlay-accent/70 pointer-events-auto absolute top-[20px] right-[20px] flex h-[48px] w-[48px] cursor-pointer items-center justify-center rounded-full border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] shadow-[0_18px_48px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md transition-colors duration-150 hover:bg-[var(--overlay-surface-strong)] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 focus-visible:outline-none"
+          onClick={onClose}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M18 6L6 18M6 6l12 12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+      )}
+      {showOverlayChrome && loading && (
         <div
           className="zhonglens-crop-shimmer border-overlay-accent/70 absolute overflow-hidden border-2 bg-[rgba(3,7,18,0.05)] shadow-[0_0_0_1px_rgba(3,7,18,0.35),0_0_28px_rgba(52,211,153,0.2)]"
           style={{
@@ -327,7 +355,7 @@ export default ({ onClose }) => {
           }}
         />
       )}
-      {loading && (
+      {showOverlayChrome && loading && (
         <div className="text-overlay-text absolute top-[50%] left-[50%] flex min-w-[240px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-lg border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] px-[22px] py-[20px] text-center shadow-[var(--overlay-shadow)] backdrop-blur-xl">
           <svg
             width="40"
@@ -360,73 +388,75 @@ export default ({ onClose }) => {
           </span>
         </div>
       )}
-      {error && (
+      {showOverlayChrome && error && (
         <div className="absolute top-[50%] left-[50%] flex max-w-[min(420px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-[14px] border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] px-[22px] py-[18px] text-center shadow-[var(--overlay-shadow)] backdrop-blur-xl">
           <span className="text-[15px] leading-[20px] font-medium text-[#fda4af]">
             {error}
           </span>
         </div>
       )}
-      <div className="pointer-events-auto absolute bottom-[24px] left-1/2 flex max-w-[calc(100vw-32px)] -translate-x-1/2 flex-col items-center justify-between gap-[6px] rounded-[28px] border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] px-[16px] py-[10px] shadow-[var(--overlay-shadow)] backdrop-blur-xl">
-        <div className="flex items-center gap-[8px]">
-          <ToolbarSwitch
-            label="Crop"
-            active={cropModeEnabled}
-            activeIcon={<Crop className="size-[13px]" />}
-            inactiveIcon={<X className="size-[13px]" />}
-            disabled={loading}
-            onClick={() => {
-              void toggleCropMode();
-            }}
-          />
-          {cropModeEnabled && (
-            <div className="flex flex-col items-center justify-between gap-[2px]">
-              <ToolbarIconButton
-                label="Edit crop region"
-                onClick={editCropRegion}
-                size={"28px"}
-                disabled={loading}
-              >
-                <PencilRuler className="size-[18px]" />
-              </ToolbarIconButton>
-              <span
-                className={`text-overlay-muted text-[10px] ${loading && "opacity-45"}`}
-              >
-                Edit crop
-              </span>
-            </div>
-          )}
-          <ToolbarSwitch
-            label="Cloud"
-            active={cloudOcrEnabled}
-            activeIcon={<Cloud className="size-[13px]" />}
-            inactiveIcon={<CloudOff className="size-[13px]" />}
-            badge={showCloudUsage ? cloudOcrRemainingCount : null}
-            disabled={loading}
-            onClick={() => {
-              void toggleCloudOcrMode();
-            }}
-          />
-          <ToolbarIconButton
-            label="Scan again"
-            disabled={scanAgainDisabled}
-            size={"44px"}
-            onClick={() => {
-              void scanAgain();
-            }}
-          >
-            <RefreshCw
-              className={`size-[18px] ${loading ? "animate-spin" : ""}`}
+      {showOverlayChrome && (
+        <div className="pointer-events-auto absolute bottom-[24px] left-1/2 flex max-w-[calc(100vw-32px)] -translate-x-1/2 flex-col items-center justify-between gap-[6px] rounded-[28px] border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] px-[16px] py-[10px] shadow-[var(--overlay-shadow)] backdrop-blur-xl">
+          <div className="flex items-center gap-[8px]">
+            <ToolbarSwitch
+              label="Crop"
+              active={cropModeEnabled}
+              activeIcon={<Crop className="size-[13px]" />}
+              inactiveIcon={<X className="size-[13px]" />}
+              disabled={loading}
+              onClick={() => {
+                void toggleCropMode();
+              }}
             />
-          </ToolbarIconButton>
+            {cropModeEnabled && (
+              <div className="flex flex-col items-center justify-between gap-[2px]">
+                <ToolbarIconButton
+                  label="Edit crop region"
+                  onClick={editCropRegion}
+                  size={"28px"}
+                  disabled={loading}
+                >
+                  <PencilRuler className="size-[18px]" />
+                </ToolbarIconButton>
+                <span
+                  className={`text-overlay-muted text-[10px] ${loading && "opacity-45"}`}
+                >
+                  Edit crop
+                </span>
+              </div>
+            )}
+            <ToolbarSwitch
+              label="Cloud"
+              active={cloudOcrEnabled}
+              activeIcon={<Cloud className="size-[13px]" />}
+              inactiveIcon={<CloudOff className="size-[13px]" />}
+              badge={showCloudUsage ? cloudOcrRemainingCount : null}
+              disabled={loading}
+              onClick={() => {
+                void toggleCloudOcrMode();
+              }}
+            />
+            <ToolbarIconButton
+              label="Scan again"
+              disabled={scanAgainDisabled}
+              size={"44px"}
+              onClick={() => {
+                void scanAgain();
+              }}
+            >
+              <RefreshCw
+                className={`size-[18px] ${loading ? "animate-spin" : ""}`}
+              />
+            </ToolbarIconButton>
+          </div>
+          {showCloudUsage && (
+            <span className="text-overlay-muted max-w-full truncate px-[8px] text-center text-[10px] leading-[14px]">
+              {cloudOcrRemainingCount} free cloud scans left. Upgrade to
+              supporter for unlimited scans.
+            </span>
+          )}
         </div>
-        {showCloudUsage && (
-          <span className="text-overlay-muted max-w-full truncate px-[8px] text-center text-[10px] leading-[14px]">
-            {cloudOcrRemainingCount} free cloud scans left. Upgrade to supporter
-            for unlimited scans.
-          </span>
-        )}
-      </div>
+      )}
     </div>
   );
 };
