@@ -69,16 +69,32 @@ function getTextBlockLayout({ entry, scalingFactor, crop, startX, startY }) {
 
   const boxHeight = Math.sqrt((x4 - x1) ** 2 + (y4 - y1) ** 2);
   const boxWidth = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
-  const fontSize = (boxHeight / scalingFactor) * 0.8;
   const angle = angleFromQuad([x1, y1], [x2, y2]);
 
-  return {
-    top: y1 / scalingFactor,
-    left: x1 / scalingFactor,
-    boxWidth: boxWidth / scalingFactor,
-    fontSize,
-    angle,
-  };
+  if (boxWidth > boxHeight) {
+    const fontSize = (boxHeight / scalingFactor) * 0.8;
+
+    return {
+      top: y1 / scalingFactor,
+      left: x1 / scalingFactor,
+      boxWidth: boxWidth / scalingFactor,
+      fontSize,
+      angle,
+      vertical: false,
+    };
+  } else {
+    const fontSize = (boxWidth / scalingFactor) * 0.8;
+
+    return {
+      top: y1 / scalingFactor,
+      left: x1 / scalingFactor,
+      boxWidth: boxWidth / scalingFactor,
+      boxHeight: boxHeight / scalingFactor,
+      fontSize,
+      angle,
+      vertical: true,
+    };
+  }
 }
 
 function getViewportHeight() {
@@ -138,6 +154,7 @@ function createTextSpan({ text, layout, textColor, bgEnabled, angle }) {
     paddingRight: bgEnabled ? "2px" : "0",
     transformOrigin: "top left",
     transform: `rotate(${layout.angle}deg)`,
+    writingMode: layout.vertical ? "vertical-rl" : "horizontal-tb",
   });
 
   span.addEventListener("mouseenter", () => {
@@ -157,20 +174,32 @@ function createTextSpan({ text, layout, textColor, bgEnabled, angle }) {
 
 // Adjusts letter spacing after the span is in the DOM, matching the old React
 // ChildText behavior without needing a duplicate OCR layer.
-function fitTextToOcrBox(span, text, boxWidth) {
+function fitTextToOcrBox(span, text, boxWidth, boxHeight) {
   const textLength = text.length;
 
   if (textLength <= 1) {
     return;
   }
 
-  // get the width of the placed span
+  // get the width and height of the placed span
   const computedWidth = span.getBoundingClientRect().width;
-  const widthDiff = boxWidth - computedWidth;
+  const computedHeight = span.getBoundingClientRect().height;
 
-  // calculate the spacing needed to reach the OCR box length
-  // by diving the difference in width with no letter spacing by the number of spaces.
-  const letterSpacing = widthDiff / (textLength - 1);
+  let letterSpacing;
+
+  if (computedWidth > computedHeight) {
+    const widthDiff = boxWidth - computedWidth;
+
+    // calculate the spacing needed to reach the OCR box length
+    // by diving the difference in height with no letter spacing by the number of spaces.
+    letterSpacing = widthDiff / (textLength - 1);
+  } else {
+    const heightDiff = boxHeight - computedHeight;
+
+    // calculate the spacing needed to reach the OCR box length
+    // by diving the difference in height with no letter spacing by the number of spaces.
+    letterSpacing = heightDiff / (textLength - 1);
+  }
 
   span.style.letterSpacing = `${letterSpacing}px`;
 }
@@ -201,7 +230,7 @@ export async function renderLightDomTextLayer({
     const span = createTextSpan({ text, layout, textColor, bgEnabled });
 
     layer.append(span);
-    fitTextToOcrBox(span, text, layout.boxWidth);
+    fitTextToOcrBox(span, text, layout.boxWidth, layout.boxHeight);
   }
 }
 
