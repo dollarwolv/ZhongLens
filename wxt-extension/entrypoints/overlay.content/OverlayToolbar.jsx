@@ -19,22 +19,29 @@ export default function OverlayToolbar({
   cloudOcrRemainingCount,
   scanAgainDisabled,
   hidden,
+  autoHidden = false,
   onToggleCropMode,
   onEditCropRegion,
   onToggleCloudOcrMode,
   onScanAgain,
   onHiddenChange,
 }) {
+  const expandedVisible = !hidden && !autoHidden;
+  const collapsedVisible = hidden && !autoHidden;
+  const expandedTransform = `translateX(-50%) scale(${hidden ? 0.75 : 1})`;
+  const collapsedTransform = `translateX(-50%) scale(${hidden ? 1 : 0.75})`;
+
   return (
     <>
       <div
-        aria-hidden={hidden}
-        inert={hidden ? "" : undefined}
-        className={`absolute bottom-[24px] left-1/2 flex max-w-[calc(100vw-32px)] origin-bottom -translate-x-1/2 flex-col items-center justify-between gap-[6px] rounded-[28px] border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] px-[16px] py-[10px] shadow-[var(--overlay-shadow)] backdrop-blur-xl transition-[opacity,transform] duration-200 ease-out ${
-          hidden
-            ? "pointer-events-none scale-75 opacity-0"
-            : "pointer-events-auto scale-100 opacity-100"
+        aria-hidden={!expandedVisible}
+        inert={!expandedVisible ? "" : undefined}
+        className={`absolute bottom-[24px] left-1/2 flex max-w-[calc(100vw-32px)] origin-bottom flex-col items-center justify-between gap-[6px] rounded-[28px] border border-[color:var(--overlay-border)] bg-[color:var(--overlay-surface)] px-[16px] py-[10px] shadow-[var(--overlay-shadow)] backdrop-blur-xl transition-[opacity,transform] duration-200 ease-out ${
+          expandedVisible
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0"
         }`}
+        style={{ transform: expandedTransform }}
       >
         <button
           type="button"
@@ -112,13 +119,14 @@ export default function OverlayToolbar({
         type="button"
         aria-label="Show OCR controls"
         title="Show OCR controls"
-        aria-hidden={!hidden}
-        tabIndex={hidden ? 0 : -1}
-        className={`text-overlay-muted hover:border-overlay-accent/50 hover:text-overlay-text focus-visible:ring-overlay-accent/70 absolute bottom-[24px] left-1/2 flex h-[28px] w-[40px] origin-bottom -translate-x-1/2 cursor-pointer items-center justify-center rounded-full border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] shadow-[var(--overlay-shadow)] backdrop-blur-xl transition-[background-color,border-color,color,opacity,transform] duration-200 ease-out hover:bg-[var(--overlay-surface-strong)] focus-visible:ring-2 focus-visible:outline-none ${
-          hidden
-            ? "pointer-events-auto scale-100 opacity-100"
-            : "pointer-events-none scale-75 opacity-0"
+        aria-hidden={!collapsedVisible}
+        tabIndex={collapsedVisible ? 0 : -1}
+        className={`text-overlay-muted hover:border-overlay-accent/50 hover:text-overlay-text focus-visible:ring-overlay-accent/70 absolute bottom-[24px] left-1/2 flex h-[28px] w-[40px] origin-bottom cursor-pointer items-center justify-center rounded-full border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] shadow-[var(--overlay-shadow)] backdrop-blur-xl transition-[background-color,border-color,color,opacity,transform] duration-200 ease-out hover:bg-[var(--overlay-surface-strong)] focus-visible:ring-2 focus-visible:outline-none ${
+          collapsedVisible
+            ? "pointer-events-auto opacity-100"
+            : "pointer-events-none opacity-0"
         }`}
+        style={{ transform: collapsedTransform }}
         onClick={() => {
           void onHiddenChange(false);
         }}

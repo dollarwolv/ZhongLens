@@ -8,12 +8,16 @@ import {
   NO_TEXT_FOUND_ERROR,
 } from "@/lib/ocrAnalytics";
 import {
+  OCR_TEXT_HOVER_END_EVENT,
+  OCR_TEXT_HOVER_EVENT,
   removeLightDomTextLayer,
   renderLightDomTextLayer,
 } from "./lightDomTextLayer";
 import OverlayToolbar from "./OverlayToolbar";
 
 const OVERLAY_CHROME_REVEAL_DELAY_MS = 50;
+const TOOLBAR_AUTO_HIDE_DELAY_MS = 50;
+const TOOLBAR_AUTO_SHOW_DELAY_MS = 100;
 
 function waitForNextPaint() {
   return new Promise((resolve) => {
@@ -36,7 +40,14 @@ export default ({ onClose }) => {
   const [settings, setSettings] = useState({});
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [overlayChromeVisible, setOverlayChromeVisible] = useState(false);
+  const [toolbarAutoHidden, setToolbarAutoHidden] = useState(false);
   const overlayChromeTimerRef = useRef(null);
+  // The auto-hide refs keep delayed hover work predictable. React state drives
+  // rendering, while these refs let timeout/event callbacks see the latest
+  // timer, current state, and already-scheduled state without re-rendering.
+  const toolbarAutoHideTimerRef = useRef(null);
+  const toolbarAutoHiddenRef = useRef(false);
+  const pendingToolbarAutoHiddenRef = useRef(null);
 
   async function getSettings() {
     const response = await chrome.storage.sync.get(null);
@@ -68,6 +79,12 @@ export default ({ onClose }) => {
     setError("");
     setData([]);
     removeLightDomTextLayer();
+    // A fresh scan should always start with visible toolbar chrome and no
+    // leftover hover timer from the previous OCR result.
+    window.clearTimeout(toolbarAutoHideTimerRef.current);
+    pendingToolbarAutoHiddenRef.current = null;
+    toolbarAutoHiddenRef.current = false;
+    setToolbarAutoHidden(false);
     setOverlayChromeVisible(false);
     window.clearTimeout(overlayChromeTimerRef.current);
     await waitForNextPaint();
@@ -242,6 +259,7 @@ export default ({ onClose }) => {
 
     return () => {
       window.clearTimeout(overlayChromeTimerRef.current);
+      window.clearTimeout(toolbarAutoHideTimerRef.current);
       removeLightDomTextLayer();
     };
   }, []);
@@ -273,6 +291,67 @@ export default ({ onClose }) => {
 
     return () => {
       chrome.storage.onChanged.removeListener(handleStorageChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const updateToolbarAutoHiddenAfterDelay = (nextAutoHidden) => {
+      // If the toolbar is already in the requested state, cancel any stale
+      // pending timer and leave the UI alone.
+      if (nextAutoHidden === toolbarAutoHiddenRef.current) {
+        window.clearTimeout(toolbarAutoHideTimerRef.current);
+        pendingToolbarAutoHiddenRef.current = null;
+        return;
+      }
+
+      // Mousemove fires repeatedly over the same OCR span. If we already have
+      // the same hide/show action queued, do not restart the delay.
+      if (nextAutoHidden === pendingToolbarAutoHiddenRef.current) {
+        return;
+      }
+
+      // A new requested state replaces the previous pending state. For example,
+      // leaving text before the hide timer fires cancels the hide and queues a
+      // show instead.
+      window.clearTimeout(toolbarAutoHideTimerRef.current);
+      pendingToolbarAutoHiddenRef.current = nextAutoHidden;
+      toolbarAutoHideTimerRef.current = window.setTimeout(
+        () => {
+          // The timer has now become the real rendered state.
+          pendingToolbarAutoHiddenRef.current = null;
+          toolbarAutoHiddenRef.current = nextAutoHidden;
+          setToolbarAutoHidden(nextAutoHidden);
+        },
+        nextAutoHidden
+          ? TOOLBAR_AUTO_HIDE_DELAY_MS
+          : TOOLBAR_AUTO_SHOW_DELAY_MS,
+      );
+    };
+
+    const handleOcrTextHover = (event) => {
+      // lightDomTextLayer decides whether the hovered OCR text sits in the
+      // toolbar's area. Bottom-third text asks the toolbar to fade out.
+      updateToolbarAutoHiddenAfterDelay(
+        event.detail?.shouldHideToolbar === true,
+      );
+    };
+    const handleOcrTextHoverEnd = () => {
+      // When the user leaves OCR text, bring the toolbar back after the short
+      // show delay unless another hover event cancels it first.
+      updateToolbarAutoHiddenAfterDelay(false);
+    };
+
+    window.addEventListener(OCR_TEXT_HOVER_EVENT, handleOcrTextHover);
+    window.addEventListener(OCR_TEXT_HOVER_END_EVENT, handleOcrTextHoverEnd);
+
+    return () => {
+      window.removeEventListener(OCR_TEXT_HOVER_EVENT, handleOcrTextHover);
+      window.removeEventListener(
+        OCR_TEXT_HOVER_END_EVENT,
+        handleOcrTextHoverEnd,
+      );
+      window.clearTimeout(toolbarAutoHideTimerRef.current);
+      pendingToolbarAutoHiddenRef.current = null;
     };
   }, []);
 
@@ -407,6 +486,7 @@ export default ({ onClose }) => {
           cloudOcrRemainingCount={cloudOcrRemainingCount}
           scanAgainDisabled={scanAgainDisabled}
           hidden={overlayToolbarHidden}
+          autoHidden={toolbarAutoHidden}
           onToggleCropMode={toggleCropMode}
           onEditCropRegion={editCropRegion}
           onToggleCloudOcrMode={toggleCloudOcrMode}

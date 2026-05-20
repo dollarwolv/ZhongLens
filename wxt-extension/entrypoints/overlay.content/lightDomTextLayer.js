@@ -1,6 +1,8 @@
 const TEXT_LAYER_ID = "zhonglens-ocr-text-layer";
 const TEXT_LAYER_Z_INDEX = "10000";
 const DEFAULT_CAPTION_TEXT_COLOR = "#f8fafc";
+export const OCR_TEXT_HOVER_EVENT = "zhonglens:ocr-text-hover";
+export const OCR_TEXT_HOVER_END_EVENT = "zhonglens:ocr-text-hover-end";
 
 // Reads the user's OCR caption settings, falling back to the defaults used by
 // the extension when a setting has not been saved yet.
@@ -67,6 +69,31 @@ function getTextBlockLayout({ entry, scalingFactor, crop, startX, startY }) {
   };
 }
 
+function getViewportHeight() {
+  return window.visualViewport?.height ?? window.innerHeight;
+}
+
+function shouldHideToolbarForTextSpan(span) {
+  const rect = span.getBoundingClientRect();
+  const textCenterY = rect.top + rect.height / 2;
+
+  return textCenterY >= getViewportHeight() * (2 / 3);
+}
+
+function dispatchTextHover(span) {
+  window.dispatchEvent(
+    new CustomEvent(OCR_TEXT_HOVER_EVENT, {
+      detail: {
+        shouldHideToolbar: shouldHideToolbarForTextSpan(span),
+      },
+    }),
+  );
+}
+
+function dispatchTextHoverEnd() {
+  window.dispatchEvent(new CustomEvent(OCR_TEXT_HOVER_END_EVENT));
+}
+
 // Creates one selectable OCR text span in the regular page DOM so popup
 // dictionary extensions can hover and read it.
 function createTextSpan({ text, layout, textColor, bgEnabled }) {
@@ -97,6 +124,18 @@ function createTextSpan({ text, layout, textColor, bgEnabled }) {
     WebkitTextStroke: bgEnabled ? "0 transparent" : "0.4px rgba(0, 0, 0, 0.85)",
     paddingLeft: "2px",
     paddingRight: bgEnabled ? "2px" : "0",
+  });
+
+  span.addEventListener("mouseenter", () => {
+    dispatchTextHover(span);
+  });
+
+  span.addEventListener("mousemove", () => {
+    dispatchTextHover(span);
+  });
+
+  span.addEventListener("mouseleave", () => {
+    dispatchTextHoverEnd();
   });
 
   return span;
