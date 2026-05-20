@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { Cloud, CloudOff, Crop, PencilRuler, RefreshCw, X } from "lucide-react";
 import { sendMessage } from "webext-bridge/content-script";
 import { captureEvent } from "@/lib/posthog";
 import { getRemainingCloudOcrUses } from "@/lib/cloudOcr";
@@ -12,8 +11,7 @@ import {
   removeLightDomTextLayer,
   renderLightDomTextLayer,
 } from "./lightDomTextLayer";
-import ToolbarIconButton from "./ToolbarIconButton";
-import ToolbarSwitch from "./ToolbarSwitch";
+import OverlayToolbar from "./OverlayToolbar";
 
 const OVERLAY_CHROME_REVEAL_DELAY_MS = 50;
 
@@ -396,66 +394,18 @@ export default ({ onClose }) => {
         </div>
       )}
       {showOverlayChrome && (
-        <div className="pointer-events-auto absolute bottom-[24px] left-1/2 flex max-w-[calc(100vw-32px)] -translate-x-1/2 flex-col items-center justify-between gap-[6px] rounded-[28px] border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] px-[16px] py-[10px] shadow-[var(--overlay-shadow)] backdrop-blur-xl">
-          <div className="flex items-center gap-[8px]">
-            <ToolbarSwitch
-              label="Crop"
-              active={cropModeEnabled}
-              activeIcon={<Crop className="size-[13px]" />}
-              inactiveIcon={<X className="size-[13px]" />}
-              disabled={loading}
-              onClick={() => {
-                void toggleCropMode();
-              }}
-            />
-            {cropModeEnabled && (
-              <div className="flex flex-col items-center justify-between gap-[2px]">
-                <ToolbarIconButton
-                  label="Edit crop region"
-                  onClick={editCropRegion}
-                  size={"28px"}
-                  disabled={loading}
-                >
-                  <PencilRuler className="size-[18px]" />
-                </ToolbarIconButton>
-                <span
-                  className={`text-overlay-muted text-[10px] ${loading && "opacity-45"}`}
-                >
-                  Edit crop
-                </span>
-              </div>
-            )}
-            <ToolbarSwitch
-              label="Cloud"
-              active={cloudOcrEnabled}
-              activeIcon={<Cloud className="size-[13px]" />}
-              inactiveIcon={<CloudOff className="size-[13px]" />}
-              badge={showCloudUsage ? cloudOcrRemainingCount : null}
-              disabled={loading}
-              onClick={() => {
-                void toggleCloudOcrMode();
-              }}
-            />
-            <ToolbarIconButton
-              label="Scan again"
-              disabled={scanAgainDisabled}
-              size={"44px"}
-              onClick={() => {
-                void scanAgain();
-              }}
-            >
-              <RefreshCw
-                className={`size-[18px] ${loading ? "animate-spin" : ""}`}
-              />
-            </ToolbarIconButton>
-          </div>
-          {showCloudUsage && (
-            <span className="text-overlay-muted max-w-full truncate px-[8px] text-center text-[10px] leading-[14px]">
-              {cloudOcrRemainingCount} free cloud scans left. Upgrade to
-              supporter for unlimited scans.
-            </span>
-          )}
-        </div>
+        <OverlayToolbar
+          loading={loading}
+          cropModeEnabled={cropModeEnabled}
+          cloudOcrEnabled={cloudOcrEnabled}
+          showCloudUsage={showCloudUsage}
+          cloudOcrRemainingCount={cloudOcrRemainingCount}
+          scanAgainDisabled={scanAgainDisabled}
+          onToggleCropMode={toggleCropMode}
+          onEditCropRegion={editCropRegion}
+          onToggleCloudOcrMode={toggleCloudOcrMode}
+          onScanAgain={scanAgain}
+        />
       )}
     </div>
   );
