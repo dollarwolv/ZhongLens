@@ -1,3 +1,5 @@
+import { X } from "lucide-react";
+
 const TEXT_LAYER_ID = "zhonglens-ocr-text-layer";
 const TEXT_LAYER_Z_INDEX = "10000";
 const DEFAULT_CAPTION_TEXT_COLOR = "#f8fafc";
@@ -46,6 +48,13 @@ function getOrCreateTextLayer() {
   return layer;
 }
 
+function angleFromQuad(p1, p2) {
+  const dx = p2[0] - p1[0];
+  const dy = p2[1] - p1[1];
+
+  return (Math.atan2(dy, dx) * 180) / Math.PI;
+}
+
 // Converts one OCR polygon into viewport-based text positioning values. Crop
 // offsets are applied before dividing by the screenshot scaling factor.
 function getTextBlockLayout({ entry, scalingFactor, crop, startX, startY }) {
@@ -54,18 +63,21 @@ function getTextBlockLayout({ entry, scalingFactor, crop, startX, startY }) {
     y + (crop ? startY : 0) * scalingFactor,
   ]);
   const [x1, y1] = adjustedPolygon[0];
-  const [x2] = adjustedPolygon[1];
-  const [, y3] = adjustedPolygon[2];
+  const [x2, y2] = adjustedPolygon[1];
+  const [x3, y3] = adjustedPolygon[2];
+  const [x4, y4] = adjustedPolygon[3];
 
-  const boxHeight = y3 - y1;
-  const boxWidth = x2 - x1;
+  const boxHeight = Math.sqrt((x4 - x1) ** 2 + (y4 - y1) ** 2);
+  const boxWidth = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
   const fontSize = (boxHeight / scalingFactor) * 0.8;
+  const angle = angleFromQuad([x1, y1], [x2, y2]);
 
   return {
     top: y1 / scalingFactor,
     left: x1 / scalingFactor,
     boxWidth: boxWidth / scalingFactor,
     fontSize,
+    angle,
   };
 }
 
@@ -96,7 +108,7 @@ function dispatchTextHoverEnd() {
 
 // Creates one selectable OCR text span in the regular page DOM so popup
 // dictionary extensions can hover and read it.
-function createTextSpan({ text, layout, textColor, bgEnabled }) {
+function createTextSpan({ text, layout, textColor, bgEnabled, angle }) {
   const span = document.createElement("span");
   span.textContent = text;
 
@@ -124,6 +136,8 @@ function createTextSpan({ text, layout, textColor, bgEnabled }) {
     WebkitTextStroke: bgEnabled ? "0 transparent" : "0.4px rgba(0, 0, 0, 0.85)",
     paddingLeft: "2px",
     paddingRight: bgEnabled ? "2px" : "0",
+    transformOrigin: "top left",
+    transform: `rotate(${layout.angle}deg)`,
   });
 
   span.addEventListener("mouseenter", () => {
