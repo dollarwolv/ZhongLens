@@ -68,33 +68,29 @@ function getTextBlockLayout({ entry, scalingFactor, crop, startX, startY }) {
   const [x4, y4] = adjustedPolygon[3];
 
   const boxHeight = Math.sqrt((x4 - x1) ** 2 + (y4 - y1) ** 2);
-  const boxWidth = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+  let boxWidth = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
   const angle = angleFromQuad([x1, y1], [x2, y2]);
 
-  if (boxWidth > boxHeight) {
-    const fontSize = (boxHeight / scalingFactor) * 0.8;
+  const text = entry[0];
+  const punctuation = "，。？！（）";
+  const vertical = boxHeight > boxWidth;
 
-    return {
-      top: y1 / scalingFactor,
-      left: x1 / scalingFactor,
-      boxWidth: boxWidth / scalingFactor,
-      fontSize,
-      angle,
-      vertical: false,
-    };
-  } else {
-    const fontSize = (boxWidth / scalingFactor) * 0.8;
-
-    return {
-      top: y1 / scalingFactor,
-      left: x1 / scalingFactor,
-      boxWidth: boxWidth / scalingFactor,
-      boxHeight: boxHeight / scalingFactor,
-      fontSize,
-      angle,
-      vertical: true,
-    };
+  if (punctuation.includes(text.at(-1)) && !vertical) {
+    boxWidth = boxWidth + (boxWidth / text.length) * 0.65;
   }
+
+  const fontSize =
+    (vertical ? boxWidth / scalingFactor : boxHeight / scalingFactor) * 0.8;
+
+  return {
+    top: y1 / scalingFactor,
+    left: x1 / scalingFactor,
+    boxWidth: boxWidth / scalingFactor,
+    boxHeight: boxHeight / scalingFactor,
+    fontSize,
+    angle,
+    vertical,
+  };
 }
 
 function getViewportHeight() {
