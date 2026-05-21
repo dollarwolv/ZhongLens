@@ -179,6 +179,29 @@ function App() {
             </div>
           </Field>
           <FieldSeparator />
+          <Field orientation="vertical" className="">
+            <div className="flex gap-3">
+              <Switch
+                id="hide-overlay-toolbar"
+                checked={Boolean(settings.overlayToolbarHidden)}
+                onCheckedChange={(checked) =>
+                  setSettings({
+                    ...settings,
+                    overlayToolbarHidden: checked,
+                  })
+                }
+                name="hide-overlay-toolbar"
+              />
+              <FieldLabel htmlFor="hide-overlay-toolbar">
+                Hide overlay toolbar
+              </FieldLabel>
+            </div>
+            <FieldDescription>
+              Start the OCR overlay with the control pill collapsed into a small
+              reopen button.
+            </FieldDescription>
+          </Field>
+          <FieldSeparator />
         </FieldGroup>
       </div>
       <div>

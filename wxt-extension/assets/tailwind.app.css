@@ -4,7 +4,11 @@
 
 @theme {
   --color-beige: #fefbf2;
-  --color-neon-green: #39ff14;
+  --color-overlay-accent: #34d399;
+  --color-overlay-accent-strong: #10b981;
+  --color-overlay-text: #f8fafc;
+  --color-overlay-muted: #cbd5e1;
+  --color-overlay-on-accent: #03140f;
   --font-noto: "Noto Sans", sans-serif;
 }
 
@@ -51,6 +55,11 @@
 
 :root {
   --radius: 0.625rem;
+  --overlay-surface: rgba(5, 10, 8, 0.78);
+  --overlay-surface-strong: rgba(5, 10, 8, 0.88);
+  --overlay-border: rgba(255, 255, 255, 0.16);
+  --overlay-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   --background: oklch(1 0 0);
   --foreground: oklch(0.147 0.004 49.25);
   --card: oklch(1 0 0);
@@ -136,6 +145,42 @@
   bottom: 3px;
   width: 8px;
   height: 8px;
-  border-right: 2px solid #39ff14;
-  border-bottom: 2px solid #39ff14;
+  border-right: 2px solid var(--color-overlay-accent);
+  border-bottom: 2px solid var(--color-overlay-accent);
+  filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.42));
+}
+
+@keyframes zhonglens-crop-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.zhonglens-crop-shimmer {
+  background: transparent;
+}
+
+.zhonglens-crop-shimmer::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 0%,
+    rgba(52, 211, 153, 0.04) 40%,
+    rgba(167, 243, 208, 0.22) 50%,
+    rgba(52, 211, 153, 0.04) 60%,
+    transparent 100%
+  );
+  animation: zhonglens-crop-shimmer 1.8s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .zhonglens-crop-shimmer::before {
+    animation: none;
+    transform: translateX(0);
+  }
 }

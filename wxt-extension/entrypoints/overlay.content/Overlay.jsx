@@ -1,14 +1,31 @@
-import { useState, useEffect } from "react";
-import ChildText from "./ChildText";
-import "~/assets/tailwind.content.css";
-import { Checkbox } from "@/components/ui/checkbox";
+import { useState, useEffect, useRef } from "react";
 import { sendMessage } from "webext-bridge/content-script";
 import { captureEvent } from "@/lib/posthog";
+import { getRemainingCloudOcrUses } from "@/lib/cloudOcr";
 import {
   getOcrAnalyticsProperties,
   getOcrFailureCode,
   NO_TEXT_FOUND_ERROR,
 } from "@/lib/ocrAnalytics";
+import {
+  OCR_TEXT_HOVER_END_EVENT,
+  OCR_TEXT_HOVER_EVENT,
+  removeLightDomTextLayer,
+  renderLightDomTextLayer,
+} from "./lightDomTextLayer";
+import OverlayToolbar from "./OverlayToolbar";
+
+const OVERLAY_CHROME_REVEAL_DELAY_MS = 50;
+const TOOLBAR_AUTO_HIDE_DELAY_MS = 50;
+const TOOLBAR_AUTO_SHOW_DELAY_MS = 100;
+
+function waitForNextPaint() {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(resolve);
+    });
+  });
+}
 
 export default ({ onClose }) => {
   const [loading, setLoading] = useState(false);
@@ -20,18 +37,60 @@ export default ({ onClose }) => {
   const [startY, setStartY] = useState(0);
   const [status, setStatus] = useState("Analyzing...");
   const [mode, setMode] = useState();
+  const [settings, setSettings] = useState({});
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [overlayChromeVisible, setOverlayChromeVisible] = useState(false);
+  const [toolbarAutoHidden, setToolbarAutoHidden] = useState(false);
+  const overlayChromeTimerRef = useRef(null);
+  // The auto-hide refs keep delayed hover work predictable. React state drives
+  // rendering, while these refs let timeout/event callbacks see the latest
+  // timer, current state, and already-scheduled state without re-rendering.
+  const toolbarAutoHideTimerRef = useRef(null);
+  const toolbarAutoHiddenRef = useRef(false);
+  const pendingToolbarAutoHiddenRef = useRef(null);
 
-  async function getMode() {
-    const response = await chrome.storage.sync.get("serverProcessingEnabled");
-    const serverProcessingEnabled = response.serverProcessingEnabled;
-    if (serverProcessingEnabled) setMode("Cloud OCR");
-    else setMode("Local OCR");
+  async function getSettings() {
+    const response = await chrome.storage.sync.get(null);
+    setSettings(response);
+    setMode(response.serverProcessingEnabled ? "Cloud OCR" : "Local OCR");
+    return response;
+  }
+
+  async function getSubscriptionStatus() {
+    try {
+      const res = await sendMessage(
+        "GET_SUBSCRIPTION_STATUS",
+        { useCached: true },
+        "background",
+      );
+
+      if (res?.ok) {
+        setIsSubscribed(Boolean(res.userSubscribed));
+      }
+    } catch (error) {
+      console.error("Failed to get subscription status:", error);
+    }
   }
 
   async function screenshot() {
     // Start timing before the screenshot request so duration_ms covers the
     // whole OCR wait from the user's point of view.
     const startedAt = performance.now();
+    setError("");
+    setData([]);
+    removeLightDomTextLayer();
+    // A fresh scan should always start with visible toolbar chrome and no
+    // leftover hover timer from the previous OCR result.
+    window.clearTimeout(toolbarAutoHideTimerRef.current);
+    pendingToolbarAutoHiddenRef.current = null;
+    toolbarAutoHiddenRef.current = false;
+    setToolbarAutoHidden(false);
+    setOverlayChromeVisible(false);
+    window.clearTimeout(overlayChromeTimerRef.current);
+    await waitForNextPaint();
+    overlayChromeTimerRef.current = window.setTimeout(() => {
+      setOverlayChromeVisible(true);
+    }, OVERLAY_CHROME_REVEAL_DELAY_MS);
     setLoading(true);
     const { cssW, cssH } = getViewportCssSize();
     setStatus("Processing image...");
@@ -50,8 +109,12 @@ export default ({ onClose }) => {
         ),
         full_error_code: fullErrorCode,
       });
-      setError(res?.error);
+      setError(fullErrorCode);
+      setData([]);
+      removeLightDomTextLayer();
       setLoading(false);
+      setOverlayChromeVisible(true);
+      window.clearTimeout(overlayChromeTimerRef.current);
       return;
     }
     setStatus("Untangling response...");
@@ -67,7 +130,7 @@ export default ({ onClose }) => {
     } else if (mode === "local_ocr") {
       data = resultData
         .filter((item) => item.confidence > 50)
-        .map((item, index) => {
+        .map((item) => {
           const bbox = item.bbox;
           const fullBoundingBox = [
             [bbox.x0, bbox.y0],
@@ -87,7 +150,6 @@ export default ({ onClose }) => {
         });
     }
 
-    setData(data);
     // This event means OCR work actually started and returned a response.
     // Keep these property names aligned with ocr_requested for easy comparison.
     void captureEvent("ocr_started", {
@@ -104,7 +166,11 @@ export default ({ onClose }) => {
         full_error_code: NO_TEXT_FOUND_ERROR,
       });
       setError(NO_TEXT_FOUND_ERROR);
+      setData([]);
+      removeLightDomTextLayer();
       setLoading(false);
+      setOverlayChromeVisible(true);
+      window.clearTimeout(overlayChromeTimerRef.current);
       return;
     }
 
@@ -117,7 +183,63 @@ export default ({ onClose }) => {
     setStartY(res?.startY);
     setScalingFactor(res?.scalingFactor);
     setCrop(res?.crop);
+    setData(data);
     setLoading(false);
+    setOverlayChromeVisible(true);
+    window.clearTimeout(overlayChromeTimerRef.current);
+  }
+
+  async function updateOverlaySetting(updates) {
+    setSettings((currentSettings) => ({
+      ...currentSettings,
+      ...updates,
+    }));
+    await chrome.storage.sync.set(updates);
+  }
+
+  async function toggleCropMode() {
+    const newCrop = !cropModeEnabled;
+    await updateOverlaySetting({ crop: newCrop });
+    void captureEvent("crop_mode_toggled", { enabled: newCrop });
+
+    if (newCrop && !selectedCropBox) {
+      editCropRegion();
+    }
+  }
+
+  async function toggleCloudOcrMode() {
+    const newEnabled = !cloudOcrEnabled;
+    await updateOverlaySetting({ serverProcessingEnabled: newEnabled });
+    setMode(newEnabled ? "Cloud OCR" : "Local OCR");
+    void captureEvent("cloud_ocr_toggled", { enabled: newEnabled });
+  }
+
+  async function updateOverlayToolbarHidden(hidden) {
+    await updateOverlaySetting({ overlayToolbarHidden: hidden });
+  }
+
+  function editCropRegion() {
+    chrome.runtime.sendMessage(
+      { type: "TOGGLE_CROP_OVERLAY_FROM_CONTENT" },
+      (res) => {
+        if (chrome.runtime.lastError || !res?.ok) {
+          console.error(
+            chrome.runtime.lastError?.message ||
+              res?.error ||
+              "Failed to toggle crop overlay.",
+          );
+        }
+      },
+    );
+  }
+
+  async function scanAgain() {
+    if (loading) {
+      return;
+    }
+
+    await getSettings();
+    await screenshot();
   }
 
   function getViewportCssSize() {
@@ -129,43 +251,200 @@ export default ({ onClose }) => {
   }
 
   useEffect(() => {
-    getMode();
-    screenshot();
+    void (async () => {
+      await getSettings();
+      await getSubscriptionStatus();
+      await screenshot();
+    })();
+
+    return () => {
+      window.clearTimeout(overlayChromeTimerRef.current);
+      window.clearTimeout(toolbarAutoHideTimerRef.current);
+      removeLightDomTextLayer();
+    };
   }, []);
 
   useEffect(() => {
-    console.log(data);
-    console.log("data logged in useeffect");
-    console.log("startX: " + startX);
-    console.log("startY: " + startY);
-  }, [data]);
+    const handleStorageChange = (changes, areaName) => {
+      if (areaName !== "sync") {
+        return;
+      }
+
+      setSettings((currentSettings) => {
+        const nextSettings = { ...currentSettings };
+
+        for (const [key, change] of Object.entries(changes)) {
+          nextSettings[key] = change.newValue;
+        }
+
+        return nextSettings;
+      });
+
+      if (changes.serverProcessingEnabled) {
+        setMode(
+          changes.serverProcessingEnabled.newValue ? "Cloud OCR" : "Local OCR",
+        );
+      }
+    };
+
+    chrome.storage.onChanged.addListener(handleStorageChange);
+
+    return () => {
+      chrome.storage.onChanged.removeListener(handleStorageChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const updateToolbarAutoHiddenAfterDelay = (nextAutoHidden) => {
+      // If the toolbar is already in the requested state, cancel any stale
+      // pending timer and leave the UI alone.
+      if (nextAutoHidden === toolbarAutoHiddenRef.current) {
+        window.clearTimeout(toolbarAutoHideTimerRef.current);
+        pendingToolbarAutoHiddenRef.current = null;
+        return;
+      }
+
+      // Mousemove fires repeatedly over the same OCR span. If we already have
+      // the same hide/show action queued, do not restart the delay.
+      if (nextAutoHidden === pendingToolbarAutoHiddenRef.current) {
+        return;
+      }
+
+      // A new requested state replaces the previous pending state. For example,
+      // leaving text before the hide timer fires cancels the hide and queues a
+      // show instead.
+      window.clearTimeout(toolbarAutoHideTimerRef.current);
+      pendingToolbarAutoHiddenRef.current = nextAutoHidden;
+      toolbarAutoHideTimerRef.current = window.setTimeout(
+        () => {
+          // The timer has now become the real rendered state.
+          pendingToolbarAutoHiddenRef.current = null;
+          toolbarAutoHiddenRef.current = nextAutoHidden;
+          setToolbarAutoHidden(nextAutoHidden);
+        },
+        nextAutoHidden
+          ? TOOLBAR_AUTO_HIDE_DELAY_MS
+          : TOOLBAR_AUTO_SHOW_DELAY_MS,
+      );
+    };
+
+    const handleOcrTextHover = (event) => {
+      // lightDomTextLayer decides whether the hovered OCR text sits in the
+      // toolbar's area. Bottom-third text asks the toolbar to fade out.
+      updateToolbarAutoHiddenAfterDelay(
+        event.detail?.shouldHideToolbar === true,
+      );
+    };
+    const handleOcrTextHoverEnd = () => {
+      // When the user leaves OCR text, bring the toolbar back after the short
+      // show delay unless another hover event cancels it first.
+      updateToolbarAutoHiddenAfterDelay(false);
+    };
+
+    window.addEventListener(OCR_TEXT_HOVER_EVENT, handleOcrTextHover);
+    window.addEventListener(OCR_TEXT_HOVER_END_EVENT, handleOcrTextHoverEnd);
+
+    return () => {
+      window.removeEventListener(OCR_TEXT_HOVER_EVENT, handleOcrTextHover);
+      window.removeEventListener(
+        OCR_TEXT_HOVER_END_EVENT,
+        handleOcrTextHoverEnd,
+      );
+      window.clearTimeout(toolbarAutoHideTimerRef.current);
+      pendingToolbarAutoHiddenRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (error || data.length === 0) {
+      removeLightDomTextLayer();
+      return;
+    }
+
+    void renderLightDomTextLayer({
+      data,
+      scalingFactor,
+      crop,
+      startX,
+      startY,
+    });
+  }, [data, scalingFactor, crop, startX, startY, error]);
+
+  const selectedCropBox = (() => {
+    const xStart = Number(settings.cropXStart);
+    const yStart = Number(settings.cropYStart);
+    const xEnd = Number(settings.cropXEnd);
+    const yEnd = Number(settings.cropYEnd);
+    const width = xEnd - xStart;
+    const height = yEnd - yStart;
+
+    if (![xStart, yStart, width, height].every(Number.isFinite)) {
+      return null;
+    }
+
+    if (width <= 0 || height <= 0) {
+      return null;
+    }
+
+    return { xStart, yStart, width, height };
+  })();
+
+  const cropModeEnabled = Boolean(settings.crop);
+  const cropBox = cropModeEnabled ? selectedCropBox : null;
+  const cloudOcrEnabled = Boolean(settings.serverProcessingEnabled);
+  const overlayToolbarHidden = Boolean(settings.overlayToolbarHidden);
+  const cloudOcrRemainingCount = getRemainingCloudOcrUses(
+    settings.cloudOcrFreeUseCount,
+  );
+  const showCloudUsage = cloudOcrEnabled && !isSubscribed;
+  const scanAgainDisabled =
+    loading ||
+    (!data.length && !error) ||
+    (cropModeEnabled && !selectedCropBox);
+  const showOverlayChrome = overlayChromeVisible;
 
   return (
-    <div className="font-noto pointer-events-none fixed top-0 left-0 z-9999 h-screen w-screen">
-      <button
-        type="button"
-        aria-label="Close overlay"
-        className="hover:border-neon-green/70 hover:text-neon-green focus-visible:ring-neon-green/70 pointer-events-auto absolute top-6 right-6 flex h-20 w-20 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-black/70 text-white shadow-lg shadow-black/30 backdrop-blur-sm transition-colors duration-150 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 focus-visible:outline-none"
-        onClick={onClose}
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-          <path
-            d="M18 6L6 18M6 6l12 12"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-          />
-        </svg>
-      </button>
-      {loading && (
-        <div className="text-neon-green absolute top-[50%] left-[50%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center">
+    <div
+      className="font-noto pointer-events-none fixed top-0 left-0 h-screen w-screen"
+      style={{ zIndex: 2147483647, fontSize: "16px" }}
+    >
+      {showOverlayChrome && (
+        <button
+          type="button"
+          aria-label="Close overlay"
+          className="text-overlay-text hover:border-overlay-accent/60 hover:text-overlay-accent focus-visible:ring-overlay-accent/70 pointer-events-auto absolute top-[20px] right-[20px] flex h-[48px] w-[48px] cursor-pointer items-center justify-center rounded-full border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] shadow-[0_18px_48px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md transition-colors duration-150 hover:bg-[var(--overlay-surface-strong)] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-black/40 focus-visible:outline-none"
+          onClick={onClose}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M18 6L6 18M6 6l12 12"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+      )}
+      {showOverlayChrome && loading && (
+        <div
+          className="zhonglens-crop-shimmer border-overlay-accent/70 absolute overflow-hidden border-2 bg-[rgba(3,7,18,0.05)] shadow-[0_0_0_1px_rgba(3,7,18,0.35),0_0_28px_rgba(52,211,153,0.2)]"
+          style={{
+            top: cropBox?.yStart || 0,
+            left: cropBox?.xStart || 0,
+            width: cropBox?.width || "100vw",
+            height: cropBox?.height || "100vh",
+          }}
+        />
+      )}
+      {showOverlayChrome && loading && (
+        <div className="text-overlay-text absolute top-[50%] left-[50%] flex min-w-[240px] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-lg border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] px-[22px] py-[20px] text-center shadow-[var(--overlay-shadow)] backdrop-blur-xl">
           <svg
             width="40"
             height="40"
             viewBox="0 0 24 24"
             aria-hidden="true"
-            className="block animate-spin"
+            className="text-overlay-accent block animate-spin"
           >
             <circle
               cx="12"
@@ -178,27 +457,43 @@ export default ({ onClose }) => {
               strokeDasharray="14 10"
             />
           </svg>
-          <span className="mt-2">Using {mode}</span>
-          <span className="mt-2">{status}</span>
+          <span className="mt-[12px] text-[15px] leading-[20px] font-medium">
+            {status}
+          </span>
+          <span className="text-overlay-muted mt-[4px] text-[12px] leading-[16px]">
+            Using {mode} - Crop {cropModeEnabled ? "enabled" : "disabled"}.
+          </span>
+          <span className="text-overlay-muted mt-[4px] text-[10px] leading-[16px]">
+            {cropBox
+              ? "Scan taking too long? Move crop to only include the most important text."
+              : "Scan taking too long? Make sure to crop the scanning region."}
+          </span>
         </div>
       )}
-      {error && (
-        <div className="absolute top-[50%] left-[50%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center text-green-400">
-          <span>{error}</span>
+      {showOverlayChrome && error && (
+        <div className="absolute top-[50%] left-[50%] flex max-w-[min(420px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-[14px] border border-[color:var(--overlay-border)] bg-[var(--overlay-surface)] px-[22px] py-[18px] text-center shadow-[var(--overlay-shadow)] backdrop-blur-xl">
+          <span className="text-[15px] leading-[20px] font-medium text-[#fda4af]">
+            {error}
+          </span>
         </div>
       )}
-      {data.map((entry, index) => {
-        return (
-          <ChildText
-            entry={entry}
-            key={index}
-            scalingFactor={scalingFactor}
-            crop={crop}
-            startX={startX}
-            startY={startY}
-          />
-        );
-      })}
+      {showOverlayChrome && (
+        <OverlayToolbar
+          loading={loading}
+          cropModeEnabled={cropModeEnabled}
+          cloudOcrEnabled={cloudOcrEnabled}
+          showCloudUsage={showCloudUsage}
+          cloudOcrRemainingCount={cloudOcrRemainingCount}
+          scanAgainDisabled={scanAgainDisabled}
+          hidden={overlayToolbarHidden}
+          autoHidden={toolbarAutoHidden}
+          onToggleCropMode={toggleCropMode}
+          onEditCropRegion={editCropRegion}
+          onToggleCloudOcrMode={toggleCloudOcrMode}
+          onScanAgain={scanAgain}
+          onHiddenChange={updateOverlayToolbarHidden}
+        />
+      )}
     </div>
   );
 };
